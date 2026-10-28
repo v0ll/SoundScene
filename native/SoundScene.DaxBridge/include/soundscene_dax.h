@@ -79,6 +79,13 @@ SS_API ss_result ss_set_active_profile(int32_t value);
 SS_API ss_result ss_get_geq(int32_t* values, uint32_t capacity, uint32_t* written);
 SS_API ss_result ss_set_geq(const int32_t* values, uint32_t count);
 
+/* One-shot read of the scalar state. Any out pointer may be null. */
+SS_API ss_result ss_get_state(int32_t* profile,
+                              int32_t* subProfile,
+                              int32_t* dolbyEnabled,
+                              int32_t* ieq,
+                              int32_t* geqMaximumRange);
+
 #ifdef __cplusplus
 }
 #endif

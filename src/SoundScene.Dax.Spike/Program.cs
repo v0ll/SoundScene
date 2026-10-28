@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+using SoundScene.Core.Audio;
+using SoundScene.Core.Backends.Dolby;
 using Windows.Management.Deployment;
 
 namespace SoundScene.Dax.Spike;
@@ -76,6 +78,7 @@ internal static class Program
                 ["open"] => RunOpen(module),
                 ["writetest"] => RunWriteTest(module),
                 ["geq", var profile] => RunGeqTest(module, int.Parse(profile, CultureInfo.InvariantCulture)),
+                ["core"] => RunCoreProbe().GetAwaiter().GetResult(),
                 _ => Usage(),
             };
         }
@@ -125,6 +128,67 @@ internal static class Program
             using var vcl = new AnsiString(vclibsDir);
             return probe(dax.Pointer, vcl.Pointer, report, len);
         });
+    }
+
+    private static async Task<int> RunCoreProbe()
+    {
+        Console.WriteLine("SoundScene - Core backend probe");
+        Console.WriteLine("==============================");
+        Console.WriteLine();
+
+        await using var backend = new DolbyDaxBackend();
+
+        var state = await backend.GetStateAsync();
+        Console.WriteLine($"backend        : {backend.Name}");
+        Console.WriteLine($"profile        : {state.Profile} ({state.Profile.DisplayName()})");
+        Console.WriteLine($"dolby enabled  : {state.DolbyEnabled}");
+        Console.WriteLine($"sub profile    : {state.SubProfile}");
+        Console.WriteLine($"ieq            : {state.Ieq}");
+        Console.WriteLine($"eq max range   : {state.GeqMaximumRange}");
+        Console.WriteLine($"eq bands       : [{string.Join(", ", state.GeqLevels)}]");
+        Console.WriteLine();
+
+        var original = state.Profile;
+        var target = original == AudioProfile.Movie ? AudioProfile.Game : AudioProfile.Movie;
+
+        Console.WriteLine($"switching      : {original.DisplayName()} -> {target.DisplayName()}");
+        await backend.SetProfileAsync(target);
+        await Task.Delay(250);
+
+        var after = await backend.GetStateAsync();
+        Console.WriteLine($"read back      : {after.Profile.DisplayName()}  {(after.Profile == target ? "OK" : "MISMATCH")}");
+
+        await backend.SetProfileAsync(original);
+        await Task.Delay(250);
+        var restored = await backend.GetStateAsync();
+        Console.WriteLine($"restored       : {restored.Profile.DisplayName()}  {(restored.Profile == original ? "OK" : "MISMATCH")}");
+        Console.WriteLine();
+
+        Console.WriteLine("writing eq bands through the abstraction...");
+        var levels = (await backend.GetGeqAsync()).ToArray();
+        if (levels.Length == 20)
+        {
+            var changed = (int[])levels.Clone();
+            changed[0] = changed[0] == 0 ? 40 : 0;
+
+            await backend.SetGeqAsync(changed);
+            await Task.Delay(250);
+            var afterEq = (await backend.GetGeqAsync()).ToArray();
+            Console.WriteLine($"band 0         : {levels[0]} -> {afterEq[0]}  {(afterEq[0] == changed[0] ? "OK" : "MISMATCH")}");
+
+            await backend.SetGeqAsync(levels);
+            await Task.Delay(250);
+            var finalEq = (await backend.GetGeqAsync()).ToArray();
+            var finalState = await backend.GetStateAsync();
+            Console.WriteLine($"restored band 0: {finalEq[0]}  {(finalEq[0] == levels[0] ? "OK" : "MISMATCH")}");
+            Console.WriteLine($"profile after  : {finalState.Profile.DisplayName()}  {(finalState.Profile == original ? "OK" : "MISMATCH")}");
+        }
+        else
+        {
+            Console.WriteLine($"unexpected band count: {levels.Length}");
+        }
+
+        return 0;
     }
 
     private static int RunGeqTest(IntPtr module, int profileIndex)

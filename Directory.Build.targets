@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <!--
+    Copies the native bridge next to every managed assembly that might load it.
+    The bridge is built out-of-band by CMake, so this target is a no-op until
+    someone has run a native build.
+  -->
+  <PropertyGroup>
+    <NativeBridgePath>$(MSBuildThisFileDirectory)native\build\Release\SoundScene.DaxBridge.dll</NativeBridgePath>
+  </PropertyGroup>
+
+  <Target Name="CopyNativeDaxBridge" AfterTargets="Build" Condition="Exists('$(NativeBridgePath)')">
+    <Copy SourceFiles="$(NativeBridgePath)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="'$(OutDir)' != ''" />
+  </Target>
+
+</Project>

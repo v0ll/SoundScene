@@ -8,4 +8,8 @@
     <RootNamespace>SoundScene.Dax.Spike</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SoundScene.Core\SoundScene.Core.csproj" />
+  </ItemGroup>
+
 </Project>

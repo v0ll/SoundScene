@@ -393,3 +393,42 @@ SS_API ss_result ss_set_geq(const int32_t* values, uint32_t count)
     return static_cast<ss_result>(
         g_session.dax->put_GEQLevels(count, const_cast<INT32*>(values)));
 }
+
+SS_API ss_result ss_get_state(int32_t* profile,
+                              int32_t* subProfile,
+                              int32_t* dolbyEnabled,
+                              int32_t* ieq,
+                              int32_t* geqMaximumRange)
+{
+    if (g_session.dax == nullptr)
+    {
+        return -1;
+    }
+
+    IDolbyDAX* dax = g_session.dax;
+    INT32 value = 0;
+    boolean_t enabled = 0;
+    HRESULT hr = S_OK;
+
+    hr = dax->get_ActiveProfile(&value);
+    if (FAILED(hr)) return static_cast<ss_result>(hr);
+    if (profile != nullptr) *profile = value;
+
+    hr = dax->get_ActiveSubProfile(&value);
+    if (FAILED(hr)) return static_cast<ss_result>(hr);
+    if (subProfile != nullptr) *subProfile = value;
+
+    hr = dax->get_DolbyEnable(&enabled);
+    if (FAILED(hr)) return static_cast<ss_result>(hr);
+    if (dolbyEnabled != nullptr) *dolbyEnabled = enabled ? 1 : 0;
+
+    hr = dax->get_IEQ(&value);
+    if (FAILED(hr)) return static_cast<ss_result>(hr);
+    if (ieq != nullptr) *ieq = value;
+
+    hr = dax->GetGEQMaximumRange(&value);
+    if (FAILED(hr)) return static_cast<ss_result>(hr);
+    if (geqMaximumRange != nullptr) *geqMaximumRange = value;
+
+    return 0;
+}
