@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SoundScene.App/SoundScene.App.csproj" />
+    <Project Path="src/SoundScene.Core/SoundScene.Core.csproj" />
+    <Project Path="src/SoundScene.Dax.Spike/SoundScene.Dax.Spike.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SoundScene.Core.Tests/SoundScene.Core.Tests.csproj" />
+  </Folder>
+</Solution>
