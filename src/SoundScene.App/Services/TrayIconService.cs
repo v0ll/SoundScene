@@ -29,6 +29,8 @@ public sealed class TrayIconService : IDisposable
             (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty));
         var equalizer = new ToolStripMenuItem("Graphic equalizer\u2026", null,
             (_, _) => EqualizerRequested?.Invoke(this, EventArgs.Empty));
+        var diagnostics = new ToolStripMenuItem("Diagnostics\u2026", null,
+            (_, _) => DiagnosticsRequested?.Invoke(this, EventArgs.Empty));
 
         // CheckOnClick flips Checked before Click fires, so the handler can just
         // write the new state through.
@@ -44,6 +46,8 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(open);
         menu.Items.Add(equalizer);
         menu.Items.Add(settings);
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(diagnostics);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(startup);
         menu.Items.Add(new ToolStripSeparator());
@@ -71,6 +75,8 @@ public sealed class TrayIconService : IDisposable
     public event EventHandler? SettingsRequested;
 
     public event EventHandler? EqualizerRequested;
+
+    public event EventHandler? DiagnosticsRequested;
 
     public event EventHandler? ExitRequested;
 

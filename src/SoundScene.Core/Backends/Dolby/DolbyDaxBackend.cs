@@ -134,7 +134,7 @@ public sealed class DolbyDaxBackend : IAudioBackend
     }
 
     /// <summary>Raw diagnostic dump, used by the diagnostics window.</summary>
-    public async Task<string> DumpStateAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GetDiagnosticsAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

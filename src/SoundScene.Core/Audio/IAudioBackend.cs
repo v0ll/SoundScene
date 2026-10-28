@@ -31,4 +31,13 @@ public interface IAudioBackend : IAsyncDisposable
     /// profile dance: Dolby only accepts EQ writes while Personalize is active.
     /// </summary>
     Task SetGeqAsync(IReadOnlyList<int> levels, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Human-readable dump of the backend's real state, for bug reports.
+    /// </summary>
+    /// <remarks>
+    /// Implementations should include anything that has ever explained a
+    /// failure: versions, endpoints, raw API results. It is never parsed.
+    /// </remarks>
+    Task<string> GetDiagnosticsAsync(CancellationToken cancellationToken = default);
 }

@@ -85,4 +85,22 @@ public sealed class MockBackend : IAudioBackend
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    public Task<string> GetDiagnosticsAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_sync)
+        {
+            var text = $"""
+                backend        : Mock (in-memory, no audio hardware)
+                profile        : {_state.Profile.DisplayName()} ({_state.Profile})
+                sub-profile    : {_state.SubProfile}
+                dolby enabled  : {_state.DolbyEnabled}
+                ieq            : {_state.Ieq}
+                geq range      : {_state.GeqMaximumRange}
+                geq bands      : {string.Join(",", _state.GeqLevels)}
+                """;
+
+            return Task.FromResult(text);
+        }
+    }
 }

@@ -39,6 +39,8 @@ what it can and cannot do.
   switches to Personalize so the change is audible.
 - **Backend abstraction** - a Dolby DAX backend plus an Equalizer APO fallback, so the app degrades
   gracefully instead of dying when the Dolby stack is unavailable. The APO backend is planned.
+- **Diagnostics** - the tray menu can dump the real backend state (HRESULTs, endpoints, the
+  copied DLL path) for a bug report.
 
 ## Using it
 

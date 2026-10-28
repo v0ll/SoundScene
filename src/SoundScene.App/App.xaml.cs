@@ -58,6 +58,7 @@ public partial class App : Application
         _tray.PopupRequested += OnPopupRequested;
         _tray.SettingsRequested += OnSettingsRequested;
         _tray.EqualizerRequested += OnEqualizerRequested;
+        _tray.DiagnosticsRequested += OnDiagnosticsRequested;
         _tray.ExitRequested += OnExitRequested;
 
         ApplyHotkeys();
@@ -171,6 +172,17 @@ public partial class App : Application
 
         // Applying switches to Personalize, so the popup's active tile moved.
         _ = _viewModel?.RefreshAsync();
+    }
+
+    private void OnDiagnosticsRequested(object? sender, EventArgs e)
+    {
+        if (_backend is null)
+        {
+            return;
+        }
+
+        var window = new DiagnosticsWindow(_backend);
+        window.ShowDialog();
     }
 
     private void OnExitRequested(object? sender, EventArgs e) => Shutdown();
