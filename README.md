@@ -1,27 +1,19 @@
 # SoundScene
 
-A lightweight profile switcher and scene controller for **Dolby Access** on ASUS ROG laptops.
+A LIGHTWEIGHT profile switcher and controller for **Dolby Access** on ASUS ROG laptops.
 
-SoundScene lets you flip between Dolby audio profiles and equalizer settings instantly - from a
-tray icon, a global hotkey, or a compact popup - instead of opening Dolby Access and clicking
-through its UI every time.
+SoundScene lets you flip between Dolby profiles and settings INSTANTLY.
 
-> **Status: working prototype.**
-> Profile switching, A/B toggle hotkeys, the scene library, and the 20-band EQ
-> editor all work against real Dolby Access on the G14. See
-> [`docs/adr/0002-dax-backend-viability.md`](docs/adr/0002-dax-backend-viability.md)
-> for how the DAX layer works and what it depends on.
+From a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time.
 
 ---
 
 ## Why
 
-The ASUS ROG Zephyrus G14 (GA403UV) ships with Dolby Access, which sounds excellent but is slow to
-operate. Switching from "Movie" to "Game" means opening a UWP app, waiting for it to load, and
-navigating a profile grid. There is no global hotkey, no CLI, and no scripting surface.
+The ASUS ROG Zephyrus G14 (GA403UV) ships with Dolby Access, which sounds excellent but lacks the quality of life experience. Switching from "Movie" to "Game" means opening the app, waiting for it to load, and
+navigating. There is nothing that makes changing profiles easier.
 
-SoundScene aims to be the G-Helper of Dolby audio: small, fast, keyboard-driven, and honest about
-what it can and cannot do.
+SoundScene aims to be the G-Helper of Dolby audio: small, fast, keyboard-driven, and honest.
 
 ## Features
 
@@ -44,7 +36,7 @@ what it can and cannot do.
 - **Diagnostics** - the tray menu can dump the real backend state (HRESULTs, endpoints, the
   copied DLL path) for a bug report.
 
-## Installing
+## INSTALLING
 
 Build the native bridge once, then install the app for the current user - no elevation, nothing
 outside your profile:
@@ -92,14 +84,14 @@ IAudioBackend
 The native bridge is a thin C++/WinRT layer exposing a small C ABI, because the DAX WinRT component
 cannot be consumed directly from .NET without a projection we don't control.
 
-## Requirements
+## REQUIREMENTS
 
 - Windows 11
 - .NET 10 SDK
 - Visual Studio 2022 Build Tools with **Desktop development with C++** (for the native bridge)
 - Dolby Access installed, with the DAX driver present
 
-## Building
+## BUILDING
 
 ```powershell
 dotnet build SoundScene.slnx
@@ -112,19 +104,13 @@ cmake -S native -B native/build -G "Visual Studio 17 2022" -A x64
 cmake --build native/build --config Release
 ```
 
-## Testing
+## TESTING
 
 ```powershell
 dotnet test SoundScene.slnx -c Release
 ```
 
-Hardware probes live in `src/SoundScene.Dax.Spike` (`core`, `scenes`, `eq`, `persist`). They talk to the
-real DAX stack and restore the state they found.
-
-`tools/ui-smoke.ps1` drives the built app through UI Automation - profile switching, scene capture,
-apply, and delete - and needs an empty scene library and nothing else running.
-
-## Legal
+## LEGAL
 
 SoundScene is an independent, unofficial project. It is **not affiliated with, endorsed by, or
 supported by Dolby Laboratories or ASUSTeK Computer Inc.** "Dolby", "Dolby Atmos", and "Dolby
