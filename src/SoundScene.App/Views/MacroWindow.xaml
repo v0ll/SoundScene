@@ -1,0 +1,96 @@
+<Window x:Class="SoundScene.App.Views.MacroWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hotkey"
+        Width="400"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SurfaceBrush}">
+    <StackPanel Margin="20">
+        <TextBlock Text="Toggle hotkey"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource TextBrush}" />
+        <TextBlock Text="Press a key combination. At least one modifier is required."
+                   FontSize="11"
+                   Foreground="{StaticResource MutedBrush}"
+                   Margin="0,4,0,12" />
+
+        <Border x:Name="CaptureBox"
+                Background="#141418"
+                BorderBrush="#3A3A44"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="14,12"
+                Focusable="True"
+                Cursor="Hand"
+                PreviewKeyDown="OnCaptureKeyDown"
+                MouseLeftButtonDown="OnCaptureClick">
+            <TextBlock x:Name="GestureText"
+                       Text="Click here, then press keys"
+                       FontSize="16"
+                       Foreground="{StaticResource TextBrush}"
+                       HorizontalAlignment="Center" />
+        </Border>
+
+        <TextBlock x:Name="HintText"
+                   FontSize="11"
+                   Foreground="#FF8A8A"
+                   Margin="2,6,0,0"
+                   Text="" />
+
+        <Grid Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Profile A"
+                       FontSize="11"
+                       Foreground="{StaticResource MutedBrush}"
+                       Margin="2,0,0,4" />
+            <TextBlock Grid.Column="2"
+                       Text="Profile B"
+                       FontSize="11"
+                       Foreground="{StaticResource MutedBrush}"
+                       Margin="2,0,0,4" />
+
+            <ComboBox x:Name="ProfileACombo"
+                      Grid.Row="1"
+                      Padding="8,6"
+                      SelectionChanged="OnProfileChanged" />
+            <ComboBox x:Name="ProfileBCombo"
+                      Grid.Row="1"
+                      Grid.Column="2"
+                      Padding="8,6"
+                      SelectionChanged="OnProfileChanged" />
+        </Grid>
+
+        <TextBlock x:Name="PreviewText"
+                   FontSize="11"
+                   Foreground="{StaticResource MutedBrush}"
+                   Margin="2,10,0,0"
+                   Text="" />
+
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,18,0,0">
+            <Button Content="Cancel"
+                    IsCancel="True"
+                    MinWidth="86"
+                    Padding="12,6"
+                    Margin="0,0,8,0" />
+            <Button Content="Save"
+                    IsDefault="True"
+                    MinWidth="86"
+                    Padding="12,6"
+                    Click="OnSave" />
+        </StackPanel>
+    </StackPanel>
+</Window>

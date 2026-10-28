@@ -3,33 +3,107 @@ using System.Windows;
 using SoundScene.App.Services;
 using SoundScene.App.ViewModels;
 using SoundScene.App.Views;
+using SoundScene.Core.Audio;
 using SoundScene.Core.Backends.Dolby;
+using SoundScene.Core.Hotkeys;
+using SoundScene.Core.Settings;
 using Application = System.Windows.Application;
 
 namespace SoundScene.App;
 
 [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
-    Justification = "The WPF Application lifetime is the owner; both fields are disposed in OnExit.")]
+    Justification = "The WPF Application lifetime is the owner; all fields are disposed in OnExit.")]
 public partial class App : Application
 {
+    private readonly SettingsStore _settingsStore = new();
     private DolbyDaxBackend? _backend;
     private TrayViewModel? _viewModel;
     private PopupWindow? _popup;
     private TrayIconService? _tray;
+    private HotkeyService? _hotkeys;
+    private AppSettings _settings = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
+        _settings = _settingsStore.Load();
+
         _backend = new DolbyDaxBackend();
         _viewModel = new TrayViewModel(_backend);
         _popup = new PopupWindow { DataContext = _viewModel };
 
+        _hotkeys = new HotkeyService();
+
         _tray = new TrayIconService();
         _tray.PopupRequested += OnPopupRequested;
+        _tray.SettingsRequested += OnSettingsRequested;
         _tray.ExitRequested += OnExitRequested;
 
+        ApplyHotkeys();
         _ = _viewModel.RefreshAsync();
+    }
+
+    private void ApplyHotkeys()
+    {
+        if (_hotkeys is null || _viewModel is null)
+        {
+            return;
+        }
+
+        _hotkeys.UnregisterAll();
+
+        var failures = new List<string>();
+
+        foreach (var macro in _settings.Macros.Where(m => m.Enabled))
+        {
+            if (!_hotkeys.TryRegister(macro.Gesture, () => OnMacroPressed(macro), out var error))
+            {
+                failures.Add($"{macro.Gesture.DisplayName}: {error}");
+            }
+        }
+
+        if (failures.Count > 0)
+        {
+            _viewModel.SetStatus("Hotkey unavailable \u2014 " + string.Join("; ", failures));
+        }
+    }
+
+    private async void OnMacroPressed(ToggleMacro macro)
+    {
+        if (_backend is null || _viewModel is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var state = await _backend.GetStateAsync().ConfigureAwait(true);
+            var target = macro.Next(state.Profile);
+            await _backend.SetProfileAsync(target).ConfigureAwait(true);
+            await _viewModel.RefreshAsync().ConfigureAwait(true);
+        }
+        catch (AudioBackendException ex)
+        {
+            _viewModel.SetStatus(ex.Message);
+        }
+    }
+
+    private void OnSettingsRequested(object? sender, EventArgs e)
+    {
+        var current = _settings.Macros.FirstOrDefault() ?? AppSettings.CreateDefault().Macros[0];
+
+        var window = new MacroWindow(current);
+        if (window.ShowDialog() != true || window.Result is null)
+        {
+            return;
+        }
+
+        _settings.Macros = [window.Result];
+        _settingsStore.Save(_settings);
+        ApplyHotkeys();
+
+        _viewModel?.SetStatus($"Hotkey set to {window.Result.Gesture.DisplayName}");
     }
 
     private async void OnPopupRequested(object? sender, EventArgs e)
@@ -48,6 +122,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _tray?.Dispose();
+        _hotkeys?.Dispose();
 
         if (_backend is not null)
         {

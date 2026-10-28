@@ -6,10 +6,11 @@ SoundScene lets you flip between Dolby audio profiles and equalizer settings ins
 tray icon, a global hotkey, or a compact popup - instead of opening Dolby Access and clicking
 through its UI every time.
 
-> **Status: pre-alpha, feasibility phase.**
-> The project is currently validating whether third-party control of the Dolby DAX stack is
-> possible at all. Until that spike succeeds, nothing here is guaranteed to work. See
-> [`docs/adr/dax-notes.md`](docs/adr/dax-notes.md) for the live investigation record.
+> **Status: working prototype.**
+> Profile switching, the tray popup, and A/B toggle hotkeys all work against real
+> Dolby Access on the G14. The EQ editor and scene library are next. See
+> [`docs/adr/0002-dax-backend-viability.md`](docs/adr/0002-dax-backend-viability.md)
+> for how the DAX layer works and what it depends on.
 
 ---
 

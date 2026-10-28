@@ -35,6 +35,9 @@ public sealed class TrayViewModel : ObservableObject
         private set => SetProperty(ref _isAvailable, value);
     }
 
+    /// <summary>Overrides the status line, e.g. for hotkey registration failures.</summary>
+    public void SetStatus(string text) => Status = text;
+
     public async Task RefreshAsync()
     {
         try
