@@ -29,11 +29,19 @@
                            FontSize="13"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource TextBrush}" />
-                <TextBlock Grid.Column="1"
-                           Text="{Binding BackendName}"
-                           FontSize="11"
-                           Foreground="{StaticResource MutedBrush}"
-                           VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="EQ"
+                            Style="{StaticResource GhostButton}"
+                            Padding="9,2"
+                            FontSize="10"
+                            Margin="0,0,8,0"
+                            ToolTip="Open the graphic equalizer"
+                            Click="OnEqualizerClick" />
+                    <TextBlock Text="{Binding BackendName}"
+                               FontSize="11"
+                               Foreground="{StaticResource MutedBrush}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
             </Grid>
 
             <ItemsControl ItemsSource="{Binding Profiles}">

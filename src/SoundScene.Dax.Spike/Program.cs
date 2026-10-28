@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using SoundScene.Core.Audio;
@@ -23,6 +24,7 @@ internal static class Program
     private const string DaxClientDllName = "DAXRPCClient.dll";
     private const string BridgeDllName = "SoundScene.DaxBridge.dll";
     private const int ReportBufferSize = 16 * 1024;
+    private const string RuntimeXmlPath = @"C:\ProgramData\Dolby\DAX3\Runtime.xml";
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int BridgeInfoFn(IntPtr buffer, uint length);
@@ -81,6 +83,8 @@ internal static class Program
                 ["geq", var profile] => RunGeqTest(module, int.Parse(profile, CultureInfo.InvariantCulture)),
                 ["core"] => RunCoreProbe().GetAwaiter().GetResult(),
                 ["scenes"] => RunSceneProbe().GetAwaiter().GetResult(),
+                ["eq"] => RunEqProbe().GetAwaiter().GetResult(),
+                ["persist"] => RunPersistProbe().GetAwaiter().GetResult(),
                 _ => Usage(),
             };
         }
@@ -96,6 +100,10 @@ internal static class Program
         Console.WriteLine("  SoundScene.Dax.Spike            activation probe");
         Console.WriteLine("  SoundScene.Dax.Spike load <dll> [extraDir]");
         Console.WriteLine("  SoundScene.Dax.Spike copytest");
+        Console.WriteLine("  SoundScene.Dax.Spike core       backend profile + EQ round-trip");
+        Console.WriteLine("  SoundScene.Dax.Spike scenes     scene library round-trip");
+        Console.WriteLine("  SoundScene.Dax.Spike eq         full 20-band write");
+        Console.WriteLine("  SoundScene.Dax.Spike persist    Runtime.xml write-through timing");
         return 1;
     }
 
@@ -191,6 +199,172 @@ internal static class Program
         }
 
         return 0;
+    }
+
+    private static async Task<int> RunPersistProbe()
+    {
+        Console.WriteLine("SoundScene - DAX persistence probe");
+        Console.WriteLine("==================================");
+        Console.WriteLine();
+
+        static string Curve(int value) => string.Join(",", Enumerable.Repeat(value, GraphicEqualizer.BandCount));
+
+        await using var first = new DolbyDaxBackend();
+
+        var start = await first.GetStateAsync();
+        var original = (await first.GetGeqAsync()).ToArray();
+        var originalCurve = string.Join(",", original);
+
+        Console.WriteLine($"start profile  : {start.Profile.DisplayName()}");
+        Console.WriteLine($"start curve    : {originalCurve}");
+        Console.WriteLine($"xml now        : profile={ProfileInXml()}, curve={CurveInXml()}");
+        Console.WriteLine();
+
+        var markerA = Curve(16);
+        await first.SetGeqAsync(Enumerable.Repeat(16, GraphicEqualizer.BandCount).ToArray());
+        var wroteA = WaitForRuntime(markerA, TimeSpan.FromSeconds(10), out var elapsedA);
+        Console.WriteLine($"write while open: persisted={wroteA} after {elapsedA.TotalMilliseconds:0} ms");
+
+        await first.SetGeqAsync(original);
+        var restoredA = WaitForRuntime(originalCurve, TimeSpan.FromSeconds(10), out var elapsedRestore);
+        Console.WriteLine($"restore while open: persisted={restoredA} after {elapsedRestore.TotalMilliseconds:0} ms");
+        Console.WriteLine();
+
+        // The case that bit us: write, then close the session at once.
+        var markerB = Curve(32);
+        await first.SetGeqAsync(Enumerable.Repeat(32, GraphicEqualizer.BandCount).ToArray());
+        await first.DisposeAsync();
+
+        var wroteB = WaitForRuntime(markerB, TimeSpan.FromSeconds(10), out var elapsedB);
+        Console.WriteLine($"write then close: persisted={wroteB} after {elapsedB.TotalMilliseconds:0} ms");
+        Console.WriteLine();
+
+        // Put the machine back the way it was, and this time let it settle.
+        await using (var second = new DolbyDaxBackend())
+        {
+            await second.SetGeqAsync(original);
+            await second.SetProfileAsync(start.Profile);
+        }
+
+        var backToOriginal = WaitForRuntime(originalCurve, TimeSpan.FromSeconds(10), out var elapsedBack);
+        var profileXml = start.Profile switch
+        {
+            AudioProfile.Movie => "movie",
+            AudioProfile.Music => "music",
+            AudioProfile.Game => "game",
+            AudioProfile.Voice => "voice",
+            AudioProfile.Personalize => "personalize",
+            _ => "dynamic",
+        };
+        var profileBack = WaitForRuntime($"SelectedMainProfile value=\"{profileXml}\"",
+            TimeSpan.FromSeconds(10), out var elapsedProfile);
+        Console.WriteLine($"final restore   : curve={backToOriginal} ({elapsedBack.TotalMilliseconds:0} ms), " +
+                          $"profile={profileBack} ({elapsedProfile.TotalMilliseconds:0} ms)");
+        Console.WriteLine();
+
+        await using var third = new DolbyDaxBackend();
+        var finalState = await third.GetStateAsync();
+        var finalEq = (await third.GetGeqAsync()).ToArray();
+        var inSessionOk = finalState.Profile == start.Profile && finalEq.SequenceEqual(original);
+        Console.WriteLine($"fresh session   : profile = {finalState.Profile.DisplayName()}, curve = {string.Join(",", finalEq)}");
+        Console.WriteLine($"xml final       : profile={ProfileInXml()}, curve={CurveInXml()}");
+        Console.WriteLine();
+
+        var ok = wroteA && restoredA && backToOriginal && profileBack && inSessionOk;
+        Console.WriteLine(ok ? "RESULT          : PASS" : "RESULT          : FAIL");
+        return ok ? 0 : 9;
+    }
+
+    private static bool WaitForRuntime(string needle, TimeSpan timeout, out TimeSpan elapsed)
+    {
+        var watch = Stopwatch.StartNew();
+
+        while (watch.Elapsed < timeout)
+        {
+            try
+            {
+                if (File.ReadAllText(RuntimeXmlPath).Contains(needle, StringComparison.Ordinal))
+                {
+                    elapsed = watch.Elapsed;
+                    return true;
+                }
+            }
+            catch (IOException)
+            {
+                // Mid-write; the next poll will read a complete file.
+            }
+
+            Thread.Sleep(100);
+        }
+
+        elapsed = watch.Elapsed;
+        return false;
+    }
+
+    private static string ProfileInXml() => ReadXmlLine("SelectedMainProfile");
+
+    private static string CurveInXml() => ReadXmlLine("graphic-equalizer-bands");
+
+    private static string ReadXmlLine(string name)
+    {
+        try
+        {
+            var line = File.ReadAllLines(RuntimeXmlPath)
+                .FirstOrDefault(l => l.Contains(name, StringComparison.OrdinalIgnoreCase));
+            return line?.Trim() ?? "<missing>";
+        }
+        catch (IOException)
+        {
+            return "<unreadable>";
+        }
+    }
+
+    private static async Task<int> RunEqProbe()
+    {
+        Console.WriteLine("SoundScene - graphic EQ probe");
+        Console.WriteLine("=============================");
+        Console.WriteLine();
+
+        await using var backend = new DolbyDaxBackend();
+
+        var start = await backend.GetStateAsync();
+        var original = (await backend.GetGeqAsync()).ToArray();
+        Console.WriteLine($"start          : {start.Profile.DisplayName()}, range = {start.GeqMaximumRange}, band 0 = {original[0]}");
+        Console.WriteLine($"bands          : {string.Join(", ", GraphicEqualizer.Frequencies.Select(GraphicEqualizer.FormatFrequency))}");
+        Console.WriteLine();
+
+        var target = GraphicEqualizer.Flat();
+        for (var i = 0; i < target.Length; i++)
+        {
+            target[i] = i % 2 == 0 ? 96 : -96;
+        }
+
+        await backend.SetGeqAsync(target);
+        var readBack = (await backend.GetGeqAsync()).ToArray();
+        var afterWrite = await backend.GetStateAsync();
+
+        var curveOk = readBack.SequenceEqual(target);
+        var restoreOk = afterWrite.Profile == start.Profile;
+        Console.WriteLine($"write 20 bands : {(curveOk ? "OK" : "MISMATCH")} (band 0 = {readBack[0]}, band 1 = {readBack[1]})");
+        Console.WriteLine($"profile after  : {afterWrite.Profile.DisplayName()} {(restoreOk ? "restored" : "MISMATCH")}");
+
+        // This is what the editor does after writing: make the curve audible.
+        await backend.SetProfileAsync(AudioProfile.Personalize);
+        var personalize = await backend.GetStateAsync();
+        var audibleOk = personalize.Profile == AudioProfile.Personalize;
+        Console.WriteLine($"apply profile  : {personalize.Profile.DisplayName()} {(audibleOk ? "OK" : "MISMATCH")}");
+
+        await backend.SetGeqAsync(original);
+        await backend.SetProfileAsync(start.Profile);
+        var restored = await backend.GetStateAsync();
+        var restoredEq = (await backend.GetGeqAsync()).ToArray();
+        var finalOk = restored.Profile == start.Profile && restoredEq.SequenceEqual(original);
+        Console.WriteLine($"restore        : profile = {restored.Profile.DisplayName()}, band 0 = {restoredEq[0]} {(finalOk ? "OK" : "MISMATCH")}");
+
+        var ok = curveOk && restoreOk && audibleOk && finalOk;
+        Console.WriteLine();
+        Console.WriteLine(ok ? "RESULT         : PASS" : "RESULT         : FAIL");
+        return ok ? 0 : 8;
     }
 
     private static async Task<int> RunSceneProbe()

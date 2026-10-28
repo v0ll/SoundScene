@@ -82,14 +82,12 @@
                     HorizontalAlignment="Right"
                     Margin="0,18,0,0">
             <Button Content="Cancel"
+                    Style="{StaticResource DialogButton}"
                     IsCancel="True"
-                    MinWidth="86"
-                    Padding="12,6"
                     Margin="0,0,8,0" />
             <Button Content="Save"
+                    Style="{StaticResource PrimaryButton}"
                     IsDefault="True"
-                    MinWidth="86"
-                    Padding="12,6"
                     Click="OnSave" />
         </StackPanel>
     </StackPanel>

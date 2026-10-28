@@ -37,12 +37,14 @@ public partial class App : Application
 
         _viewModel = new TrayViewModel(_backend, _scenes, PromptForSceneName);
         _popup = new PopupWindow { DataContext = _viewModel };
+        _popup.EqualizerRequested += OnEqualizerRequested;
 
         _hotkeys = new HotkeyService();
 
         _tray = new TrayIconService();
         _tray.PopupRequested += OnPopupRequested;
         _tray.SettingsRequested += OnSettingsRequested;
+        _tray.EqualizerRequested += OnEqualizerRequested;
         _tray.ExitRequested += OnExitRequested;
 
         ApplyHotkeys();
@@ -132,6 +134,26 @@ public partial class App : Application
 
         _popup.ShowNearTray();
         await _viewModel.RefreshAsync().ConfigureAwait(true);
+    }
+
+    private void OnEqualizerRequested(object? sender, EventArgs e)
+    {
+        if (_backend is null)
+        {
+            return;
+        }
+
+        var window = new EqWindow(new EqViewModel(_backend));
+
+        if (_popup is { IsVisible: true })
+        {
+            window.Owner = _popup;
+        }
+
+        window.ShowDialog();
+
+        // Applying switches to Personalize, so the popup's active tile moved.
+        _ = _viewModel?.RefreshAsync();
     }
 
     private void OnExitRequested(object? sender, EventArgs e) => Shutdown();

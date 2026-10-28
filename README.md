@@ -7,8 +7,8 @@ tray icon, a global hotkey, or a compact popup - instead of opening Dolby Access
 through its UI every time.
 
 > **Status: working prototype.**
-> Profile switching, A/B toggle hotkeys, and the scene library all work against
-> real Dolby Access on the G14. The EQ editor is next. See
+> Profile switching, A/B toggle hotkeys, the scene library, and the 20-band EQ
+> editor all work against real Dolby Access on the G14. See
 > [`docs/adr/0002-dax-backend-viability.md`](docs/adr/0002-dax-backend-viability.md)
 > for how the DAX layer works and what it depends on.
 
@@ -31,7 +31,9 @@ what it can and cannot do.
 - **Macro hotkeys** - bind a key combo to "toggle between profile A and profile B". The default is
   `Ctrl+Alt+M` for Movie <-> Game.
 - **Tray-first UI** - compact popup for quick switching and scene recall.
-- **EQ editor** - a 20-band graphical EQ matching Dolby's own band layout. *Not built yet.*
+- **EQ editor** - a 20-band graphical EQ matching Dolby's own band layout, with the
+  frequencies taken from the driver's tuning XML rather than guessed. Writes the curve and
+  switches to Personalize so the change is audible.
 - **Backend abstraction** - a Dolby DAX backend plus an Equalizer APO fallback, so the app degrades
   gracefully instead of dying when the Dolby stack is unavailable. The APO backend is planned.
 
@@ -41,8 +43,9 @@ what it can and cannot do.
 dotnet run --project src\SoundScene.App -c Release
 ```
 
-The app lives in the tray. Left-click the icon for the popup, right-click for hotkey settings and
-exit. Scenes and settings are stored under `%APPDATA%\SoundScene\`.
+The app lives in the tray. Left-click the icon for the popup, right-click for the graphic
+equalizer, hotkey settings, and exit. Scenes and settings are stored under
+`%APPDATA%\SoundScene\`.
 
 A scene records the active profile, and the EQ curve only when it was captured on **Personalize** -
 Dolby keeps equalizer levels per profile and only exposes them on that one, so capturing zeros from

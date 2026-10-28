@@ -1,0 +1,106 @@
+<Window x:Class="SoundScene.App.Views.EqWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Graphic equalizer"
+        Width="880"
+        SizeToContent="Height"
+        ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SurfaceBrush}">
+    <StackPanel Margin="20">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Graphic equalizer"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextBrush}" />
+            <Border Grid.Column="1"
+                    Background="#142A33"
+                    CornerRadius="10"
+                    Padding="10,3"
+                    VerticalAlignment="Center">
+                <TextBlock Text="{Binding RangeLabel}"
+                           FontSize="10"
+                           Foreground="{StaticResource ActiveBrush}" />
+            </Border>
+        </Grid>
+
+        <TextBlock Text="20 bands. Dolby stores this curve on the Personalize profile, so Apply switches to it."
+                   FontSize="11"
+                   Foreground="{StaticResource MutedBrush}"
+                   Margin="0,4,0,14" />
+
+        <Border Background="#141418" CornerRadius="10" Padding="10,12,10,8">
+            <ItemsControl ItemsSource="{Binding Bands}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="20" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="1,0">
+                            <TextBlock Text="{Binding ValueLabel}"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextBrush}"
+                                       Margin="0,0,0,4" />
+                            <Slider Orientation="Vertical"
+                                    Width="28"
+                                    Height="190"
+                                    HorizontalAlignment="Center"
+                                    Minimum="{Binding Minimum}"
+                                    Maximum="{Binding Maximum}"
+                                    Value="{Binding Value, Mode=TwoWay}"
+                                    IsMoveToPointEnabled="True"
+                                    SmallChange="1"
+                                    LargeChange="16"
+                                    ToolTip="{Binding FrequencyLabel}" />
+                            <TextBlock Text="{Binding FrequencyLabel}"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="{Binding Status}"
+                       FontSize="11"
+                       Foreground="{StaticResource MutedBrush}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       Margin="4,0,12,0" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Reset to flat"
+                        Style="{StaticResource DialogButton}"
+                        Command="{Binding ResetCommand}"
+                        Margin="0,0,8,0" />
+                <Button Content="Revert"
+                        Style="{StaticResource DialogButton}"
+                        Command="{Binding RevertCommand}"
+                        Margin="0,0,8,0" />
+                <Button Content="Apply"
+                        Style="{StaticResource PrimaryButton}"
+                        Command="{Binding ApplyCommand}"
+                        Margin="0,0,8,0" />
+                <Button Content="Close"
+                        Style="{StaticResource DialogButton}"
+                        IsCancel="True"
+                        Click="OnClose" />
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</Window>

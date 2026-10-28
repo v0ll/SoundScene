@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using SoundScene.App.Services;
 using SoundScene.Core.Audio;
 using SoundScene.Core.Hotkeys;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -17,6 +18,7 @@ public partial class MacroWindow : Window
         ArgumentNullException.ThrowIfNull(macro);
 
         InitializeComponent();
+        DarkTitleBar.Apply(this);
 
         var profiles = Enum.GetValues<AudioProfile>();
         ProfileACombo.ItemsSource = profiles;

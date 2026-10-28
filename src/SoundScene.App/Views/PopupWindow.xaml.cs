@@ -15,6 +15,9 @@ public partial class PopupWindow : Window
         InitializeComponent();
     }
 
+    /// <summary>Raised when the user asks for the equalizer from the header button.</summary>
+    public event EventHandler? EqualizerRequested;
+
     /// <summary>Shows the popup anchored to the bottom-right of the work area.</summary>
     public void ShowNearTray()
     {
@@ -48,4 +51,7 @@ public partial class PopupWindow : Window
             Hide();
         }
     }
+
+    private void OnEqualizerClick(object sender, RoutedEventArgs e) =>
+        EqualizerRequested?.Invoke(this, EventArgs.Empty);
 }

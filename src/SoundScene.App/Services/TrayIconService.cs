@@ -27,9 +27,12 @@ public sealed class TrayIconService : IDisposable
         };
         var settings = new ToolStripMenuItem("Hotkey settings\u2026", null,
             (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty));
+        var equalizer = new ToolStripMenuItem("Graphic equalizer\u2026", null,
+            (_, _) => EqualizerRequested?.Invoke(this, EventArgs.Empty));
         var exit = new ToolStripMenuItem("Exit", null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
 
         menu.Items.Add(open);
+        menu.Items.Add(equalizer);
         menu.Items.Add(settings);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exit);
@@ -54,6 +57,8 @@ public sealed class TrayIconService : IDisposable
     public event EventHandler? PopupRequested;
 
     public event EventHandler? SettingsRequested;
+
+    public event EventHandler? EqualizerRequested;
 
     public event EventHandler? ExitRequested;
 

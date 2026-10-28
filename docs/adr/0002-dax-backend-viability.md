@@ -84,6 +84,19 @@ Writes:
   Conclusion: **the GEQ is only editable in the Personalize profile**, matching
   how the Dolby Access UI behaves.
 
+### Persistence
+
+Writes reach `C:\ProgramData\Dolby\DAX3\Runtime.xml` immediately: a write is
+visible in the file within one poll interval (100 ms), and a write followed at
+once by `ss_close` still lands. There is no debounce to wait for, so
+`DolbyDaxBackend` does not sleep on dispose.
+
+This matters because an early probe appeared to lose its restore. The cause was
+a second process (a running app instance driven by real mouse input) writing the
+same profile afterwards, not a delayed flush. Two processes driving DAX will
+fight over the file; that is why the backend serialises its own calls and why a
+single-instance check is still on the list.
+
 ## Consequences
 
 - The EQ editor must switch to Personalize before writing, and restore the

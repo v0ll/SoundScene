@@ -1,4 +1,5 @@
 using System.Windows;
+using SoundScene.App.Services;
 
 namespace SoundScene.App.Views;
 
@@ -8,6 +9,7 @@ public partial class PromptWindow : Window
     public PromptWindow(string title, string label, string initialValue)
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
 
         Title = title;
         LabelText.Text = label;
