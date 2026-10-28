@@ -1,10 +1,8 @@
 # SoundScene
 
-A LIGHTWEIGHT profile switcher and controller for **Dolby Access** on ASUS ROG laptops.
+A LIGHTWEIGHT profile switcher that lets you flip between profiles and settings INSTANTLY for **Dolby Access** on ASUS ROG laptops.
 
-SoundScene lets you flip between Dolby profiles and settings INSTANTLY.
-
-From a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time.
+From a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time, while maintaining around 80MB~ RAM usage.
 
 ---
 
