@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows;
 using SoundScene.App.Services;
 using SoundScene.App.ViewModels;
@@ -49,6 +50,7 @@ public partial class App : Application
         _scenes.Load();
 
         _viewModel = new TrayViewModel(_backend, _scenes, PromptForSceneName);
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _popup = new PopupWindow { DataContext = _viewModel };
         _popup.EqualizerRequested += OnEqualizerRequested;
 
@@ -63,6 +65,15 @@ public partial class App : Application
 
         ApplyHotkeys();
         _ = _viewModel.RefreshAsync();
+    }
+
+    // Keeps the tray tooltip on the same status line the popup shows.
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TrayViewModel.Status) && _viewModel is not null)
+        {
+            _tray?.SetStatus(_viewModel.Status);
+        }
     }
 
     private void ApplyHotkeys()

@@ -49,6 +49,25 @@ public partial class PopupWindow : Window
         if (e.Key == Key.Escape)
         {
             Hide();
+            return;
+        }
+
+        // 1-6 select a profile, matching the grid order.
+        var index = e.Key switch
+        {
+            Key.D1 or Key.NumPad1 => 0,
+            Key.D2 or Key.NumPad2 => 1,
+            Key.D3 or Key.NumPad3 => 2,
+            Key.D4 or Key.NumPad4 => 3,
+            Key.D5 or Key.NumPad5 => 4,
+            Key.D6 or Key.NumPad6 => 5,
+            _ => -1,
+        };
+
+        if (index >= 0 && DataContext is ViewModels.TrayViewModel viewModel)
+        {
+            viewModel.SelectProfileAt(index);
+            e.Handled = true;
         }
     }
 

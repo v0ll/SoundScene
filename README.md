@@ -30,7 +30,8 @@ what it can and cannot do.
   Stored as plain JSON in your own user profile; Dolby Access has no equivalent.
 - **Macro hotkeys** - bind a key combo to "toggle between profile A and profile B". The default is
   `Ctrl+Alt+M` for Movie <-> Game.
-- **Tray-first UI** - compact popup for quick switching and scene recall.
+- **Tray-first UI** - compact popup for quick switching and scene recall. Number keys 1-6 pick a
+  profile, Escape closes it.
 - **One process** - a second launch wakes the running instance instead of racing it for the
   same DAX profile.
 - **Start with Windows** - optional HKCU Run entry, toggled from the tray menu.
@@ -38,7 +39,8 @@ what it can and cannot do.
   frequencies taken from the driver's tuning XML rather than guessed. Writes the curve and
   switches to Personalize so the change is audible.
 - **Backend abstraction** - a Dolby DAX backend plus an Equalizer APO fallback, so the app degrades
-  gracefully instead of dying when the Dolby stack is unavailable. The APO backend is planned.
+  gracefully instead of dying when the Dolby stack is unavailable. The APO backend is designed
+  ([ADR 0003](docs/adr/0003-equalizer-apo-fallback.md)) but not implemented.
 - **Diagnostics** - the tray menu can dump the real backend state (HRESULTs, endpoints, the
   copied DLL path) for a bug report.
 

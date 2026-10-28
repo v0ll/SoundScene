@@ -59,6 +59,21 @@ public sealed class TrayViewModel : ObservableObject
     /// <summary>Overrides the status line, e.g. for hotkey registration failures.</summary>
     public void SetStatus(string text) => Status = text;
 
+    /// <summary>Selects a profile by grid position, for the popup's number keys.</summary>
+    public void SelectProfileAt(int index)
+    {
+        if (index < 0 || index >= Profiles.Count)
+        {
+            return;
+        }
+
+        var command = Profiles[index].Command;
+        if (command.CanExecute(null))
+        {
+            command.Execute(null);
+        }
+    }
+
     public async Task RefreshAsync()
     {
         try
