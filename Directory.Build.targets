@@ -17,4 +17,17 @@
           Condition="'$(OutDir)' != ''" />
   </Target>
 
+  <!--
+    Publish copies the build output it knows about, and the bridge is not an
+    item, so it has to be placed in the publish folder explicitly. Without this
+    a published app starts but cannot open DAX.
+  -->
+  <Target Name="CopyNativeDaxBridgeToPublish"
+          AfterTargets="Publish"
+          Condition="Exists('$(NativeBridgePath)') And '$(PublishDir)' != ''">
+    <Copy SourceFiles="$(NativeBridgePath)"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
