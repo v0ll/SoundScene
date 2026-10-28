@@ -52,7 +52,9 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Button Style="{StaticResource ProfileButton}" Command="{Binding Command}">
+                        <Button Style="{StaticResource ProfileButton}"
+                                Command="{Binding Command}"
+                                AutomationProperties.Name="{Binding Name}">
                             <StackPanel>
                                 <TextBlock Text="{Binding Glyph}"
                                            FontFamily="Segoe MDL2 Assets"
@@ -125,7 +127,8 @@
                                     </Grid.ColumnDefinitions>
 
                                     <Button Style="{StaticResource SceneButton}"
-                                            Command="{Binding ApplyCommand}">
+                                            Command="{Binding ApplyCommand}"
+                                            AutomationProperties.Name="{Binding Name}">
                                         <StackPanel>
                                             <TextBlock Text="{Binding Name}"
                                                        FontSize="12"
@@ -141,6 +144,7 @@
                                     <Button Grid.Column="1"
                                             Style="{StaticResource SceneDeleteButton}"
                                             Command="{Binding DeleteCommand}"
+                                            AutomationProperties.Name="Remove scene"
                                             VerticalAlignment="Center"
                                             Margin="0,0,4,0" />
                                 </Grid>

@@ -92,6 +92,18 @@ cmake -S native -B native/build -G "Visual Studio 17 2022" -A x64
 cmake --build native/build --config Release
 ```
 
+## Testing
+
+```powershell
+dotnet test SoundScene.slnx -c Release
+```
+
+Hardware probes live in `src/SoundScene.Dax.Spike` (`core`, `scenes`, `eq`, `persist`). They talk to the
+real DAX stack and restore the state they found.
+
+`tools/ui-smoke.ps1` drives the built app through UI Automation - profile switching, scene capture,
+apply, and delete - and needs an empty scene library and nothing else running.
+
 ## Legal
 
 SoundScene is an independent, unofficial project. It is **not affiliated with, endorsed by, or
