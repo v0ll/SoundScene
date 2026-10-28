@@ -44,7 +44,25 @@ what it can and cannot do.
 - **Diagnostics** - the tray menu can dump the real backend state (HRESULTs, endpoints, the
   copied DLL path) for a bug report.
 
-## Using it
+## Installing
+
+Build the native bridge once, then install the app for the current user - no elevation, nothing
+outside your profile:
+
+```powershell
+cmake --build native\build --config Release
+powershell -ExecutionPolicy Bypass -File tools\install.ps1
+```
+
+That publishes to `%LOCALAPPDATA%\Programs\SoundScene` and creates a Start Menu shortcut, so the app
+can be launched (and pinned to the taskbar) like any other program. `-Desktop` adds a desktop
+shortcut too. The published build is framework-dependent: it needs the **.NET 10 Desktop Runtime**,
+which the SDK already includes.
+
+Launching it by hand opens the popup. The "Start with Windows" entry runs it with `--background`, so
+a login only puts the icon in the tray.
+
+For development, run it from source:
 
 ```powershell
 dotnet run --project src\SoundScene.App -c Release
