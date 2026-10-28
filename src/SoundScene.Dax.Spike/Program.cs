@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using SoundScene.Core.Audio;
 using SoundScene.Core.Backends.Dolby;
+using SoundScene.Core.Scenes;
 using Windows.Management.Deployment;
 
 namespace SoundScene.Dax.Spike;
@@ -79,6 +80,7 @@ internal static class Program
                 ["writetest"] => RunWriteTest(module),
                 ["geq", var profile] => RunGeqTest(module, int.Parse(profile, CultureInfo.InvariantCulture)),
                 ["core"] => RunCoreProbe().GetAwaiter().GetResult(),
+                ["scenes"] => RunSceneProbe().GetAwaiter().GetResult(),
                 _ => Usage(),
             };
         }
@@ -189,6 +191,79 @@ internal static class Program
         }
 
         return 0;
+    }
+
+    private static async Task<int> RunSceneProbe()
+    {
+        Console.WriteLine("SoundScene - scene library probe");
+        Console.WriteLine("================================");
+        Console.WriteLine();
+
+        var path = Path.Combine(Path.GetTempPath(), $"soundscene-scene-probe-{Guid.NewGuid():N}.json");
+
+        await using var backend = new DolbyDaxBackend();
+        var library = new SceneLibrary(backend, new SceneStore(path));
+
+        try
+        {
+            var start = await backend.GetStateAsync();
+            var originalEq = (await backend.GetGeqAsync()).ToArray();
+            Console.WriteLine($"start          : {start.Profile.DisplayName()}, band 0 = {originalEq[0]}");
+            Console.WriteLine();
+
+            await backend.SetProfileAsync(AudioProfile.Movie);
+            var movieScene = await library.CaptureAsync("probe-movie");
+            Console.WriteLine($"capture movie  : {movieScene.Summary}, custom eq = {movieScene.HasCustomEq}");
+
+            await backend.SetProfileAsync(AudioProfile.Personalize);
+            var changed = (int[])originalEq.Clone();
+            changed[0] = changed[0] == 0 ? 40 : 0;
+            await backend.SetGeqAsync(changed);
+
+            var eqScene = await library.CaptureAsync("probe-eq");
+            Console.WriteLine($"capture eq     : {eqScene.Summary}, band 0 = {eqScene.GeqLevels[0]}");
+
+            var reloaded = new SceneLibrary(backend, new SceneStore(path));
+            reloaded.Load();
+            Console.WriteLine($"reload         : [{string.Join(", ", reloaded.Scenes.Select(s => s.Name))}]");
+
+            await backend.SetProfileAsync(AudioProfile.Movie);
+            await backend.SetGeqAsync(originalEq);
+            Console.WriteLine();
+
+            await reloaded.ApplyAsync(reloaded.Scenes.Single(s => s.Name == "probe-eq"));
+            var afterEq = await backend.GetStateAsync();
+            var levels = await backend.GetGeqAsync();
+            var eqOk = levels[0] == changed[0] && afterEq.Profile == AudioProfile.Personalize;
+            Console.WriteLine($"apply eq       : profile = {afterEq.Profile.DisplayName()}, band 0 = {levels[0]} (expected {changed[0]}) {(eqOk ? "OK" : "MISMATCH")}");
+
+            await reloaded.ApplyAsync(reloaded.Scenes.Single(s => s.Name == "probe-movie"));
+            var afterMovie = await backend.GetStateAsync();
+            var movieOk = afterMovie.Profile == AudioProfile.Movie;
+            Console.WriteLine($"apply movie    : profile = {afterMovie.Profile.DisplayName()} {(movieOk ? "OK" : "MISMATCH")}");
+
+            var removed = reloaded.Remove("probe-movie") && reloaded.Remove("probe-eq");
+            var finalReload = new SceneLibrary(backend, new SceneStore(path));
+            finalReload.Load();
+            Console.WriteLine($"remove         : removed = {removed}, remaining = {finalReload.Scenes.Count}");
+            Console.WriteLine();
+
+            await backend.SetGeqAsync(originalEq);
+            await backend.SetProfileAsync(start.Profile);
+            var restored = await backend.GetStateAsync();
+            var restoredEq = await backend.GetGeqAsync();
+            Console.WriteLine($"restore        : profile = {restored.Profile.DisplayName()}, band 0 = {restoredEq[0]}");
+
+            var ok = eqOk && movieOk && removed && finalReload.Scenes.Count == 0 &&
+                     restored.Profile == start.Profile && restoredEq[0] == originalEq[0];
+
+            Console.WriteLine(ok ? "RESULT         : PASS" : "RESULT         : FAIL");
+            return ok ? 0 : 7;
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     private static int RunGeqTest(IntPtr module, int profileIndex)

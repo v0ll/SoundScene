@@ -66,6 +66,81 @@
                            Foreground="{StaticResource MutedBrush}"
                            TextTrimming="CharacterEllipsis" />
             </Border>
+
+            <Grid Margin="4,14,4,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Scenes"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource MutedBrush}"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Style="{StaticResource GhostButton}"
+                        Content="+ Save current"
+                        Command="{Binding CaptureSceneCommand}" />
+            </Grid>
+
+            <TextBlock Text="Save the profile and EQ you like, then recall it in one click."
+                       FontSize="10"
+                       Foreground="{StaticResource MutedBrush}"
+                       TextWrapping="Wrap"
+                       Margin="6,6,6,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Scenes.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <ScrollViewer MaxHeight="190"
+                          Margin="0,4,0,0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Scenes}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{StaticResource TileBrush}"
+                                    CornerRadius="8"
+                                    Margin="4,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button Style="{StaticResource SceneButton}"
+                                            Command="{Binding ApplyCommand}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="12"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Summary}"
+                                                       FontSize="10"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Margin="0,1,0,0" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource SceneDeleteButton}"
+                                            Command="{Binding DeleteCommand}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,4,0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </StackPanel>
     </Border>
 </Window>

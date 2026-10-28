@@ -6,6 +6,7 @@ using SoundScene.App.Views;
 using SoundScene.Core.Audio;
 using SoundScene.Core.Backends.Dolby;
 using SoundScene.Core.Hotkeys;
+using SoundScene.Core.Scenes;
 using SoundScene.Core.Settings;
 using Application = System.Windows.Application;
 
@@ -17,6 +18,7 @@ public partial class App : Application
 {
     private readonly SettingsStore _settingsStore = new();
     private DolbyDaxBackend? _backend;
+    private SceneLibrary? _scenes;
     private TrayViewModel? _viewModel;
     private PopupWindow? _popup;
     private TrayIconService? _tray;
@@ -30,7 +32,10 @@ public partial class App : Application
         _settings = _settingsStore.Load();
 
         _backend = new DolbyDaxBackend();
-        _viewModel = new TrayViewModel(_backend);
+        _scenes = new SceneLibrary(_backend);
+        _scenes.Load();
+
+        _viewModel = new TrayViewModel(_backend, _scenes, PromptForSceneName);
         _popup = new PopupWindow { DataContext = _viewModel };
 
         _hotkeys = new HotkeyService();
@@ -104,6 +109,18 @@ public partial class App : Application
         ApplyHotkeys();
 
         _viewModel?.SetStatus($"Hotkey set to {window.Result.Gesture.DisplayName}");
+    }
+
+    private string? PromptForSceneName(string suggested)
+    {
+        var window = new PromptWindow("Save scene", "Name this scene", suggested);
+
+        if (_popup is not null)
+        {
+            window.Owner = _popup;
+        }
+
+        return window.ShowDialog() == true ? window.Result : null;
     }
 
     private async void OnPopupRequested(object? sender, EventArgs e)

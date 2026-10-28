@@ -29,7 +29,17 @@ public partial class PopupWindow : Window
         Focus();
     }
 
-    private void OnDeactivated(object? sender, EventArgs e) => Hide();
+    private void OnDeactivated(object? sender, EventArgs e)
+    {
+        // A modal child (the scene name prompt) takes focus without the user
+        // meaning to dismiss the popup, so only hide when nothing is owned.
+        if (OwnedWindows.Count > 0)
+        {
+            return;
+        }
+
+        Hide();
+    }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {

@@ -7,8 +7,8 @@ tray icon, a global hotkey, or a compact popup - instead of opening Dolby Access
 through its UI every time.
 
 > **Status: working prototype.**
-> Profile switching, the tray popup, and A/B toggle hotkeys all work against real
-> Dolby Access on the G14. The EQ editor and scene library are next. See
+> Profile switching, A/B toggle hotkeys, and the scene library all work against
+> real Dolby Access on the G14. The EQ editor is next. See
 > [`docs/adr/0002-dax-backend-viability.md`](docs/adr/0002-dax-backend-viability.md)
 > for how the DAX layer works and what it depends on.
 
@@ -23,16 +23,30 @@ navigating a profile grid. There is no global hotkey, no CLI, and no scripting s
 SoundScene aims to be the G-Helper of Dolby audio: small, fast, keyboard-driven, and honest about
 what it can and cannot do.
 
-## Planned features
+## Features
 
 - **Instant profile switching** - main profiles (Movie / Music / Game / Voice / Personalize / Dynamic).
-- **Scenes** - named snapshots of a full audio state (profile + EQ + surround + dialog + bass),
-  stored as plain JSON in your own user profile.
-- **EQ editor** - a 20-band graphical EQ matching Dolby's own band layout.
-- **Tray-first UI** - compact popup for quick switching, full editor window when you need it.
-- **Macro hotkeys** - bind a key combo to "toggle between profile A and profile B".
+- **Scenes** - save the current profile and custom EQ as a named scene, recall it with one click.
+  Stored as plain JSON in your own user profile; Dolby Access has no equivalent.
+- **Macro hotkeys** - bind a key combo to "toggle between profile A and profile B". The default is
+  `Ctrl+Alt+M` for Movie <-> Game.
+- **Tray-first UI** - compact popup for quick switching and scene recall.
+- **EQ editor** - a 20-band graphical EQ matching Dolby's own band layout. *Not built yet.*
 - **Backend abstraction** - a Dolby DAX backend plus an Equalizer APO fallback, so the app degrades
-  gracefully instead of dying when the Dolby stack is unavailable.
+  gracefully instead of dying when the Dolby stack is unavailable. The APO backend is planned.
+
+## Using it
+
+```powershell
+dotnet run --project src\SoundScene.App -c Release
+```
+
+The app lives in the tray. Left-click the icon for the popup, right-click for hotkey settings and
+exit. Scenes and settings are stored under `%APPDATA%\SoundScene\`.
+
+A scene records the active profile, and the EQ curve only when it was captured on **Personalize** -
+Dolby keeps equalizer levels per profile and only exposes them on that one, so capturing zeros from
+Movie would be a lie.
 
 ## Architecture
 
