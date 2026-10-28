@@ -65,6 +65,13 @@ public partial class App : Application
 
         ApplyHotkeys();
         _ = _viewModel.RefreshAsync();
+
+        // Launching the app by hand should show something; starting with Windows
+        // passes --background so the login stays quiet and only the tray appears.
+        if (!e.Args.Contains(StartupRegistration.BackgroundArgument, StringComparer.OrdinalIgnoreCase))
+        {
+            _ = Dispatcher.BeginInvoke(() => OnPopupRequested(this, EventArgs.Empty));
+        }
     }
 
     // Keeps the tray tooltip on the same status line the popup shows.

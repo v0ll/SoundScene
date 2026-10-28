@@ -16,6 +16,11 @@ internal static class StartupRegistration
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "SoundScene";
 
+    /// <summary>
+    /// Passed by the Run entry: start in the tray without opening the popup.
+    /// </summary>
+    public const string BackgroundArgument = "--background";
+
     public static bool IsEnabled
     {
         get
@@ -62,10 +67,10 @@ internal static class StartupRegistration
             var assembly = Assembly.GetEntryAssembly()?.Location;
             if (!string.IsNullOrEmpty(assembly))
             {
-                return $"\"{process}\" \"{assembly}\"";
+                return $"\"{process}\" \"{assembly}\" {BackgroundArgument}";
             }
         }
 
-        return $"\"{process}\"";
+        return $"\"{process}\" {BackgroundArgument}";
     }
 }
