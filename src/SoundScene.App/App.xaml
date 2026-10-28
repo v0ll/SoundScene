@@ -1,9 +1,47 @@
 ﻿<Application x:Class="SoundScene.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:SoundScene.App"
-             StartupUri="MainWindow.xaml">
+             ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-         
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#1B1B1F" />
+        <SolidColorBrush x:Key="TileBrush" Color="#26262C" />
+        <SolidColorBrush x:Key="TileHoverBrush" Color="#32323A" />
+        <SolidColorBrush x:Key="ActiveBrush" Color="#4CC2FF" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F2F2F2" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#8A8A93" />
+
+        <Style x:Key="ProfileButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource TileBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="Padding" Value="8,10" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource TileHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource ActiveBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Application.Resources>
 </Application>
