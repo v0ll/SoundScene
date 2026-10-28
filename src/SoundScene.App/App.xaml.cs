@@ -17,6 +17,7 @@ namespace SoundScene.App;
 public partial class App : Application
 {
     private readonly SettingsStore _settingsStore = new();
+    private SingleInstance? _instance;
     private DolbyDaxBackend? _backend;
     private SceneLibrary? _scenes;
     private TrayViewModel? _viewModel;
@@ -28,6 +29,18 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Two instances would fight over the same DAX profile, so the second
+        // launch just asks the running one for its popup and leaves.
+        _instance = SingleInstance.TryAcquire();
+        if (_instance is null)
+        {
+            SingleInstance.SignalRunningInstance();
+            Shutdown();
+            return;
+        }
+
+        _instance.ActivationRequested += OnActivationRequested;
 
         _settings = _settingsStore.Load();
 
@@ -136,6 +149,10 @@ public partial class App : Application
         await _viewModel.RefreshAsync().ConfigureAwait(true);
     }
 
+    // Another launch asked us to surface the popup. Comes from a pool thread.
+    private void OnActivationRequested(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(() => OnPopupRequested(this, EventArgs.Empty));
+
     private void OnEqualizerRequested(object? sender, EventArgs e)
     {
         if (_backend is null)
@@ -162,6 +179,7 @@ public partial class App : Application
     {
         _tray?.Dispose();
         _hotkeys?.Dispose();
+        _instance?.Dispose();
 
         if (_backend is not null)
         {

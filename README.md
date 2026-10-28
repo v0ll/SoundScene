@@ -31,6 +31,9 @@ what it can and cannot do.
 - **Macro hotkeys** - bind a key combo to "toggle between profile A and profile B". The default is
   `Ctrl+Alt+M` for Movie <-> Game.
 - **Tray-first UI** - compact popup for quick switching and scene recall.
+- **One process** - a second launch wakes the running instance instead of racing it for the
+  same DAX profile.
+- **Start with Windows** - optional HKCU Run entry, toggled from the tray menu.
 - **EQ editor** - a 20-band graphical EQ matching Dolby's own band layout, with the
   frequencies taken from the driver's tuning XML rather than guessed. Writes the curve and
   switches to Personalize so the change is audible.
