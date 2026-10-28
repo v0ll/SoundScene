@@ -19,16 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-## Third-party notice
-
-SoundScene is an independent project. It is not affiliated with, endorsed by, or
-supported by Dolby Laboratories, Inc. or ASUSTeK Computer Inc.
-
-"Dolby", "Dolby Atmos", "Dolby Access", and "ASUS ROG" are trademarks of their
-respective owners and are used here only to describe interoperability.
-
-This repository contains no Dolby code, binaries, or assets. The MIT license
-above applies solely to the original source code in this repository.

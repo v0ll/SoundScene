@@ -139,6 +139,8 @@ precisely so the app remains useful in that case.
 Use at your own risk. Modifying audio driver state can, in principle, leave a machine with no sound
 until the driver is reset. Back up `C:\ProgramData\Dolby\DAX3\Runtime.xml` before experimenting.
 
+The trademark and third-party notice is kept separately in [`NOTICE.md`](NOTICE.md).
+
 ## License
 
 MIT - see [LICENSE.md](LICENSE.md).
