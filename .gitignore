@@ -484,3 +484,7 @@ $RECYCLE.BIN/
 # Native build output
 native/build/
 
+# Release packaging output
+/build/
+/dist/
+

@@ -85,3 +85,6 @@ if ($Desktop) {
 Write-Host ""
 Write-Host "Launch it from the Start Menu, or pin the shortcut to the taskbar."
 Write-Host "Turn on 'Start with Windows' from the tray menu to keep it running."
+Write-Host ""
+Write-Host "This is the development install. To remove it:"
+Write-Host "  powershell -ExecutionPolicy Bypass -File tools\uninstall.ps1"
