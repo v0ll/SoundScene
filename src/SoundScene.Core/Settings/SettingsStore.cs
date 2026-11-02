@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using SoundScene.Core.Hotkeys;
 
 namespace SoundScene.Core.Settings;
 
@@ -39,8 +40,7 @@ public sealed class SettingsStore
         try
         {
             var json = File.ReadAllText(FilePath);
-            return JsonSerializer.Deserialize<AppSettings>(json, SerializerOptions)
-                   ?? AppSettings.CreateDefault();
+            return Deserialize(json) ?? AppSettings.CreateDefault();
         }
         catch (JsonException)
         {
@@ -67,5 +67,63 @@ public sealed class SettingsStore
         }
 
         File.WriteAllText(FilePath, JsonSerializer.Serialize(settings, SerializerOptions));
+    }
+
+    /// <summary>
+    /// Deserialises a settings file, upgrading version 1 (toggles only) on the
+    /// way in. The returned object always reports the current version, so the
+    /// next save writes the new shape.
+    /// </summary>
+    private static AppSettings? Deserialize(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var version = root.TryGetProperty(nameof(AppSettings.Version), out var versionElement)
+                      && versionElement.TryGetInt32(out var parsed)
+            ? parsed
+            : 0;
+
+        // Trust the shape over the number when they disagree: a file with
+        // explicit actions was written by this version even if someone dropped
+        // the Version property.
+        var looksCurrent = version >= AppSettings.CurrentVersion
+                           || FirstMacroHasAction(root);
+
+        if (looksCurrent)
+        {
+            return JsonSerializer.Deserialize<AppSettings>(json, SerializerOptions);
+        }
+
+        var legacy = JsonSerializer.Deserialize<LegacySettingsV1>(json, SerializerOptions);
+        if (legacy is null)
+        {
+            return null;
+        }
+
+        return new AppSettings
+        {
+            Version = AppSettings.CurrentVersion,
+            Macros = (legacy.Macros ?? []).Select(macro => macro.ToMacro()).ToList(),
+        };
+    }
+
+    private static bool FirstMacroHasAction(JsonElement root)
+    {
+        if (!root.TryGetProperty(nameof(AppSettings.Macros), out var macros)
+            || macros.ValueKind != JsonValueKind.Array
+            || macros.GetArrayLength() == 0)
+        {
+            return false;
+        }
+
+        var first = macros[0];
+        return first.ValueKind == JsonValueKind.Object
+               && first.TryGetProperty(nameof(HotkeyMacro.Action), out _);
     }
 }

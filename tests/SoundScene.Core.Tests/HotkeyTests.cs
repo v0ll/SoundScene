@@ -39,37 +39,55 @@ public class HotkeyGestureTests
     }
 }
 
-public class ToggleMacroTests
+public class HotkeyMacroTests
 {
-    private static ToggleMacro CreateMacro() => new()
+    private static HotkeyMacro CreateToggle() => new()
     {
         Gesture = new HotkeyGesture(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x4D),
+        Action = MacroAction.ToggleProfiles,
         ProfileA = AudioProfile.Movie,
         ProfileB = AudioProfile.Game,
+    };
+
+    private static HotkeyMacro CreateAbsolute() => new()
+    {
+        Gesture = new HotkeyGesture(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x31),
+        Action = MacroAction.ActivateProfile,
+        Profile = AudioProfile.Music,
     };
 
     [Fact]
     public void Next_FromA_ReturnsB()
     {
-        var macro = CreateMacro();
-
-        Assert.Equal(AudioProfile.Game, macro.Next(AudioProfile.Movie));
+        Assert.Equal(AudioProfile.Game, CreateToggle().Next(AudioProfile.Movie));
     }
 
     [Fact]
     public void Next_FromB_ReturnsA()
     {
-        var macro = CreateMacro();
-
-        Assert.Equal(AudioProfile.Movie, macro.Next(AudioProfile.Game));
+        Assert.Equal(AudioProfile.Movie, CreateToggle().Next(AudioProfile.Game));
     }
 
     [Fact]
     public void Next_FromAnyOtherProfile_ReturnsA()
     {
-        var macro = CreateMacro();
+        Assert.Equal(AudioProfile.Movie, CreateToggle().Next(AudioProfile.Music));
+    }
 
-        Assert.Equal(AudioProfile.Movie, macro.Next(AudioProfile.Music));
+    [Fact]
+    public void Next_AbsoluteAction_AlwaysReturnsItsProfile()
+    {
+        var macro = CreateAbsolute();
+
+        Assert.Equal(AudioProfile.Music, macro.Next(AudioProfile.Movie));
+        Assert.Equal(AudioProfile.Music, macro.Next(AudioProfile.Music));
+        Assert.Equal(AudioProfile.Music, macro.Next(AudioProfile.Game));
+    }
+
+    [Fact]
+    public void Description_ShowsDirectionForAbsoluteActions()
+    {
+        Assert.Equal("Ctrl+Alt+1  \u00B7  \u2192 Music", CreateAbsolute().Description);
     }
 }
 
@@ -86,6 +104,7 @@ public class SettingsStoreTests
             var settings = AppSettings.CreateDefault();
             settings.Macros[0] = settings.Macros[0] with
             {
+                Action = MacroAction.ToggleProfiles,
                 ProfileA = AudioProfile.Music,
                 ProfileB = AudioProfile.Personalize,
             };
@@ -94,9 +113,80 @@ public class SettingsStoreTests
             var loaded = new SettingsStore(path).Load();
 
             var macro = Assert.Single(loaded.Macros);
+            Assert.Equal(AppSettings.CurrentVersion, loaded.Version);
+            Assert.Equal(MacroAction.ToggleProfiles, macro.Action);
             Assert.Equal(AudioProfile.Music, macro.ProfileA);
             Assert.Equal(AudioProfile.Personalize, macro.ProfileB);
             Assert.Equal("Ctrl+Alt+M", macro.Gesture.DisplayName);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Load_Version1File_UpgradesTogglesToToggleMacros()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"soundscene-v1-{Guid.NewGuid():N}.json");
+
+        try
+        {
+            File.WriteAllText(path, """
+                {
+                  "Version": 1,
+                  "Macros": [
+                    {
+                      "Gesture": { "Modifiers": "Control, Alt", "VirtualKey": 77 },
+                      "ProfileA": "Movie",
+                      "ProfileB": "Game",
+                      "Enabled": true
+                    }
+                  ]
+                }
+                """);
+
+            var loaded = new SettingsStore(path).Load();
+
+            var macro = Assert.Single(loaded.Macros);
+            Assert.Equal(AppSettings.CurrentVersion, loaded.Version);
+            Assert.Equal(MacroAction.ToggleProfiles, macro.Action);
+            Assert.Equal(AudioProfile.Movie, macro.ProfileA);
+            Assert.Equal(AudioProfile.Game, macro.ProfileB);
+            Assert.Equal("Ctrl+Alt+M", macro.Gesture.DisplayName);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Load_Version2File_KeepsAbsoluteActions()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"soundscene-v2-{Guid.NewGuid():N}.json");
+
+        try
+        {
+            var settings = new AppSettings
+            {
+                Macros =
+                [
+                    new HotkeyMacro
+                    {
+                        Gesture = new HotkeyGesture(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x31),
+                        Action = MacroAction.ActivateProfile,
+                        Profile = AudioProfile.Voice,
+                    },
+                ],
+            };
+
+            new SettingsStore(path).Save(settings);
+            var loaded = new SettingsStore(path).Load();
+
+            var macro = Assert.Single(loaded.Macros);
+            Assert.Equal(MacroAction.ActivateProfile, macro.Action);
+            Assert.Equal(AudioProfile.Voice, macro.Profile);
         }
         finally
         {

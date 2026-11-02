@@ -71,4 +71,46 @@ public class GraphicEqualizerTests
         Assert.Equal(GraphicEqualizer.BandCount, flat.Length);
         Assert.All(flat, value => Assert.Equal(0, value));
     }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(8, 0)]
+    [InlineData(-8, 0)]
+    [InlineData(9, 9)]
+    [InlineData(-9, -9)]
+    [InlineData(48, 48)]
+    public void Snap_FlattensTheHalfDecibelAroundZero(int input, int expected)
+    {
+        Assert.Equal(expected, GraphicEqualizer.Snap(input));
+    }
+
+    [Theory]
+    [InlineData(0, "0.0")]
+    [InlineData(3, "+3.0")]
+    [InlineData(-2.5, "-2.5")]
+    public void FormatDecibels_IsSignedToOneDecimal(double decibels, string expected)
+    {
+        Assert.Equal(expected, GraphicEqualizer.FormatDecibels(decibels));
+    }
+
+    [Fact]
+    public void SimpleGroups_CoverEveryBandExactlyOnce()
+    {
+        var groups = GraphicEqualizer.SimpleGroups;
+
+        Assert.Equal(GraphicEqualizer.BandCount / 2, groups.Count);
+        Assert.Equal(Enumerable.Range(0, GraphicEqualizer.BandCount),
+            groups.SelectMany(group => new[] { group.LowIndex, group.HighIndex }));
+
+        Assert.Equal(0, groups[0].LowIndex);
+        Assert.Equal(GraphicEqualizer.BandCount - 1, groups[^1].HighIndex);
+    }
+
+    [Fact]
+    public void SimpleGroups_LabelTheGeometricCentre()
+    {
+        Assert.Equal("81", GraphicEqualizer.SimpleGroups[0].Label);
+        Assert.Equal("1.5k", GraphicEqualizer.SimpleGroups[4].Label);
+        Assert.Equal("47 Hz + 141 Hz", GraphicEqualizer.SimpleGroups[0].Members);
+    }
 }

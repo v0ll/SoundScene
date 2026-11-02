@@ -50,6 +50,44 @@ public static class GraphicEqualizer
     public static int Clamp(double value, int range) =>
         (int)Math.Round(Math.Clamp(value, -range, range), MidpointRounding.AwayFromZero);
 
+    /// <summary>
+    /// How close a value has to get to 0 before it snaps there: 8 units, i.e.
+    /// half a decibel. A 1/16 dB step is far finer than a hand can hit, so
+    /// without this nobody can land on a flat band.
+    /// </summary>
+    public const int FlatSnap = 8;
+
+    /// <summary>Snaps near-zero values to exactly flat.</summary>
+    public static int Snap(int value) => Math.Abs(value) <= FlatSnap ? 0 : value;
+
+    /// <summary>Signed one-decimal dB readout, e.g. <c>+3.0</c>, <c>0.0</c>.</summary>
+    public static string FormatDecibels(double decibels) =>
+        decibels.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The simple view's ten sliders. Each one moves a pair of adjacent driver
+    /// bands; the label is the pair's geometric centre, so it is honest about
+    /// what the slider covers instead of pretending to be a 1-octave EQ.
+    /// </summary>
+    public static IReadOnlyList<EqualizerGroup> SimpleGroups { get; } =
+        Enumerable.Range(0, BandCount / 2)
+            .Select(pair => new EqualizerGroup(
+                pair * 2,
+                (pair * 2) + 1,
+                Math.Sqrt(Frequencies[pair * 2] * Frequencies[(pair * 2) + 1])))
+            .ToArray();
+
     /// <summary>A flat response, used for reset and as a safe default.</summary>
     public static int[] Flat() => new int[BandCount];
+}
+
+/// <summary>Two adjacent driver bands driven by one slider in the simple view.</summary>
+public sealed record EqualizerGroup(int LowIndex, int HighIndex, double CenterFrequency)
+{
+    public string Label => GraphicEqualizer.FormatFrequency(CenterFrequency);
+
+    /// <summary>The exact driver bands this slider writes, e.g. <c>47 Hz + 141 Hz</c>.</summary>
+    public string Members =>
+        $"{GraphicEqualizer.Frequencies[LowIndex].ToString("0", CultureInfo.InvariantCulture)} Hz + " +
+        $"{GraphicEqualizer.Frequencies[HighIndex].ToString("0", CultureInfo.InvariantCulture)} Hz";
 }

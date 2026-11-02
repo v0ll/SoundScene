@@ -22,6 +22,7 @@ public sealed record HotkeyGesture
     public uint VirtualKey { get; }
 
     /// <summary>Human-readable form, e.g. <c>Ctrl+Alt+M</c>.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public string DisplayName
     {
         get

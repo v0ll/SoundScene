@@ -69,4 +69,26 @@ public class MockBackendTests
 
         await Assert.ThrowsAsync<AudioBackendException>(() => backend.SetGeqAsync(new int[10]));
     }
+
+    [Fact]
+    public async Task SetVolumeLevelerAsync_RoundTrips()
+    {
+        var backend = new MockBackend();
+
+        await backend.SetVolumeLevelerAsync(true);
+        var state = await backend.GetStateAsync();
+
+        Assert.True(state.VolumeLevelerEnabled);
+    }
+
+    [Fact]
+    public async Task SetSurroundVirtualizerAsync_RoundTrips()
+    {
+        var backend = new MockBackend();
+
+        await backend.SetSurroundVirtualizerAsync(true);
+        var state = await backend.GetStateAsync();
+
+        Assert.True(state.SurroundVirtualizerEnabled);
+    }
 }
