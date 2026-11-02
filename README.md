@@ -18,16 +18,19 @@ SoundScene aims to be the G-Helper of Dolby audio: small, fast, keyboard-driven,
 - **Instant profile switching** - main profiles (Movie / Music / Game / Voice / Personalize / Dynamic).
 - **Scenes** - save the current profile and custom EQ as a named scene, recall it with one click.
   Stored as plain JSON in your own user profile; Dolby Access has no equivalent.
-- **Macro hotkeys** - bind a key combo to "toggle between profile A and profile B". The default is
-  `Ctrl+Alt+M` for Movie <-> Game.
+- **Macro hotkeys** - as many as you want. Each one either switches straight to a profile or
+  toggles between two, with a single global key combination. The editor is available from the
+  popup header and the tray menu; existing single-toggle settings are migrated automatically.
 - **Tray-first UI** - compact popup for quick switching and scene recall. Number keys 1-6 pick a
   profile, Escape closes it.
 - **One process** - a second launch wakes the running instance instead of racing it for the
   same DAX profile.
 - **Start with Windows** - optional HKCU Run entry, toggled from the tray menu.
-- **EQ editor** - a 20-band graphical EQ matching Dolby's own band layout, with the
-  frequencies taken from the driver's tuning XML rather than guessed. Writes the curve and
-  switches to Personalize so the change is audible.
+- **EQ editor** - a simple 10-slider view by default, with all 20 driver bands behind an
+  **Advanced** tab. Type a level in dB or drag a slider; values snap to flat near 0 dB and
+  changes are written immediately, with no Apply button. Includes Dolby's volume leveler and
+  surround virtualizer switches. The curve and switches live on Personalize, so the editor
+  activates it while open.
 - **Backend abstraction** - a Dolby DAX backend plus an Equalizer APO fallback, so the app degrades
   gracefully instead of dying when the Dolby stack is unavailable. The APO backend is designed
   ([ADR 0003](docs/adr/0003-equalizer-apo-fallback.md)) but not implemented.
@@ -59,7 +62,7 @@ dotnet run --project src\SoundScene.App -c Release
 ```
 
 The app lives in the tray. Left-click the icon for the popup, right-click for the graphic
-equalizer, hotkey settings, and exit. Scenes and settings are stored under
+equalizer, hotkeys, and exit. Scenes and settings are stored under
 `%APPDATA%\SoundScene\`.
 
 A scene records the active profile, and the EQ curve only when it was captured on **Personalize** -

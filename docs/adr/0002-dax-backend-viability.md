@@ -83,6 +83,10 @@ Writes:
 - `put_GEQLevels` returns `0x8002000D DISP_E_ARRAYISLOCKED` under profile 0.
   Conclusion: **the GEQ is only editable in the Personalize profile**, matching
   how the Dolby Access UI behaves.
+- `VolumeLevelerEnable` and `SurroundVirtualizerEnable` round-trip and persist in
+  `Runtime.xml` as `volume-leveler-enable` and
+  `output-mode-partial-surround-virtualizer-enable` on the active Personalize
+  sub-profile. They follow the same Personalize-only rule as the curve.
 
 ### Persistence
 
@@ -99,8 +103,9 @@ single-instance check is still on the list.
 
 ## Consequences
 
-- The EQ editor must switch to Personalize before writing, and restore the
-  previous profile afterwards. This is a product rule, not a workaround.
+- The EQ editor must switch to Personalize before writing the curve, the volume
+  leveler, or the surround virtualizer, and restore the previous profile
+  afterwards. This is a product rule, not a workaround.
 - `Initialize()` and `GetVersionNumber()` return `0x800706EF
   RPC_X_NULL_REF_POINTER`, yet every property access works. The instance appears
   to be pre-initialised by the service. `ss_open` therefore reports `PARTIAL`
