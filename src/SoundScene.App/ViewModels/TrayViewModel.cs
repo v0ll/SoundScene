@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using SoundScene.App.Mvvm;
 using SoundScene.Core.Audio;
+using SoundScene.Core.Backends.Dolby;
 using SoundScene.Core.Scenes;
 
 namespace SoundScene.App.ViewModels;
@@ -14,6 +15,8 @@ public sealed class TrayViewModel : ObservableObject
     private readonly Func<string, string?>? _askForSceneName;
     private string _status = "Starting\u2026";
     private bool _isAvailable = true;
+    private bool _needsSetup;
+    private string _requirementSummary = string.Empty;
     private AudioProfile _currentProfile = AudioProfile.Movie;
 
     public TrayViewModel(
@@ -56,6 +59,33 @@ public sealed class TrayViewModel : ObservableObject
         private set => SetProperty(ref _isAvailable, value);
     }
 
+    /// <summary>True when a prerequisite is missing, so the setup banner is shown.</summary>
+    public bool NeedsSetup
+    {
+        get => _needsSetup;
+        private set => SetProperty(ref _needsSetup, value);
+    }
+
+    public string RequirementSummary
+    {
+        get => _requirementSummary;
+        private set => SetProperty(ref _requirementSummary, value);
+    }
+
+    /// <summary>Applies the result of a requirements check to the popup and tray.</summary>
+    public void ApplyRequirements(DaxRequirements requirements)
+    {
+        ArgumentNullException.ThrowIfNull(requirements);
+
+        NeedsSetup = !requirements.IsReady;
+        RequirementSummary = requirements.Summary;
+
+        if (NeedsSetup)
+        {
+            Status = "Setup required \u00B7 " + RequirementSummary;
+        }
+    }
+
     /// <summary>Overrides the status line, e.g. for hotkey registration failures.</summary>
     public void SetStatus(string text) => Status = text;
 
@@ -88,6 +118,7 @@ public sealed class TrayViewModel : ObservableObject
             }
 
             IsAvailable = true;
+            NeedsSetup = false;
             Status = state.DolbyEnabled
                 ? $"Dolby on \u00B7 {state.Profile.DisplayName()}"
                 : "Dolby processing is off";
@@ -153,6 +184,8 @@ public sealed class TrayViewModel : ObservableObject
     private void ReportError(Exception exception)
     {
         IsAvailable = false;
-        Status = exception.Message;
+        Status = NeedsSetup
+            ? "Setup required \u00B7 " + RequirementSummary
+            : exception.Message;
     }
 }

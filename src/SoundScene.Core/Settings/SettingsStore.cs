@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SoundScene.Core.Hotkeys;
+using SoundScene.Core.Storage;
 
 namespace SoundScene.Core.Settings;
 
@@ -26,8 +27,7 @@ public sealed class SettingsStore
     public string FilePath { get; }
 
     public static string DefaultFilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SoundScene",
+        AppPaths.DataDirectory,
         "settings.json");
 
     public AppSettings Load()

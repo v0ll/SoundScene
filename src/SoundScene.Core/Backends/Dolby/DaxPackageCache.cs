@@ -1,3 +1,4 @@
+using SoundScene.Core.Storage;
 using Windows.Management.Deployment;
 
 namespace SoundScene.Core.Backends.Dolby;
@@ -39,10 +40,7 @@ internal static class DaxPackageCache
             return string.Empty;
         }
 
-        var cache = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SoundScene",
-            "dax-cache");
+        var cache = AppPaths.CacheDirectory;
 
         try
         {

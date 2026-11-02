@@ -1,6 +1,7 @@
 using System.IO;
 using System.Reflection;
 using Microsoft.Win32;
+using SoundScene.Core.Storage;
 
 namespace SoundScene.App.Services;
 
@@ -25,6 +26,11 @@ internal static class StartupRegistration
     {
         get
         {
+            if (AppPaths.IsPortable)
+            {
+                return false;
+            }
+
             using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
             return key?.GetValue(ValueName) is string value && value.Length > 0;
         }
@@ -32,6 +38,12 @@ internal static class StartupRegistration
 
     public static void SetEnabled(bool enabled)
     {
+        // A portable copy must not write outside its own folder.
+        if (AppPaths.IsPortable)
+        {
+            return;
+        }
+
         using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
         if (key is null)
         {

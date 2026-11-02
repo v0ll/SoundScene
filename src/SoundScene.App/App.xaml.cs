@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Windows;
 using SoundScene.App.Services;
 using SoundScene.App.ViewModels;
@@ -9,6 +10,7 @@ using SoundScene.Core.Backends.Dolby;
 using SoundScene.Core.Hotkeys;
 using SoundScene.Core.Scenes;
 using SoundScene.Core.Settings;
+using SoundScene.Core.Storage;
 using Application = System.Windows.Application;
 
 namespace SoundScene.App;
@@ -17,7 +19,11 @@ namespace SoundScene.App;
     Justification = "The WPF Application lifetime is the owner; all fields are disposed in OnExit.")]
 public partial class App : Application
 {
-    private readonly SettingsStore _settingsStore = new();
+    private const string PortableArgument = "--portable";
+    private const string PortableMarker = "portable.txt";
+    private const string ResetDolbyArgument = "--reset-dolby";
+
+    private SettingsStore? _settingsStore;
     private SingleInstance? _instance;
     private DolbyDaxBackend? _backend;
     private SceneLibrary? _scenes;
@@ -27,10 +33,28 @@ public partial class App : Application
     private HotkeyService? _hotkeys;
     private IdleMemoryTrimmer? _trimmer;
     private AppSettings _settings = new();
+    private bool _setupPrompted;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Portable copies keep everything beside the executable, so this has to
+        // happen before any store is constructed.
+        if (e.Args.Contains(PortableArgument, StringComparer.OrdinalIgnoreCase)
+            || File.Exists(Path.Combine(AppContext.BaseDirectory, PortableMarker)))
+        {
+            AppPaths.UsePortable(AppContext.BaseDirectory);
+        }
+
+        // Uninstall uses this to put Dolby back to a neutral state before the
+        // app's files disappear. Best effort: a missing Dolby install must not
+        // keep the uninstaller from finishing.
+        if (e.Args.Contains(ResetDolbyArgument, StringComparer.OrdinalIgnoreCase))
+        {
+            _ = ResetDolbyAsync();
+            return;
+        }
 
         // Two instances would fight over the same DAX profile, so the second
         // launch just asks the running one for its popup and leaves.
@@ -44,6 +68,7 @@ public partial class App : Application
 
         _instance.ActivationRequested += OnActivationRequested;
 
+        _settingsStore = new SettingsStore();
         _settings = _settingsStore.Load();
 
         _backend = new DolbyDaxBackend();
@@ -52,18 +77,21 @@ public partial class App : Application
 
         _viewModel = new TrayViewModel(_backend, _scenes, PromptForSceneName);
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _viewModel.ApplyRequirements(DaxRequirementChecker.Check());
 
         // The popup is built on first use. Starting with Windows should cost a
         // tray icon and a view model, not a hidden WPF window tree.
         _trimmer = new IdleMemoryTrimmer();
         _hotkeys = new HotkeyService();
 
-        _tray = new TrayIconService();
+        _tray = new TrayIconService(allowStartup: !AppPaths.IsPortable);
         _tray.PopupRequested += OnPopupRequested;
         _tray.SettingsRequested += OnSettingsRequested;
         _tray.EqualizerRequested += OnEqualizerRequested;
         _tray.DiagnosticsRequested += OnDiagnosticsRequested;
+        _tray.SetupRequested += OnSetupRequested;
         _tray.ExitRequested += OnExitRequested;
+        _tray.SetStatus(_viewModel.Status);
 
         ApplyHotkeys();
         _ = _viewModel.RefreshAsync();
@@ -74,6 +102,27 @@ public partial class App : Application
         {
             _ = Dispatcher.BeginInvoke(() => OnPopupRequested(this, EventArgs.Empty));
         }
+    }
+
+    /// <summary>Puts Personalize back to flat/off, then exits without showing UI.</summary>
+    private async Task ResetDolbyAsync()
+    {
+        try
+        {
+            await using var backend = new DolbyDaxBackend();
+            var state = await backend.GetStateAsync().ConfigureAwait(true);
+            await backend.SetProfileAsync(AudioProfile.Personalize).ConfigureAwait(true);
+            await backend.SetGeqAsync(GraphicEqualizer.Flat()).ConfigureAwait(true);
+            await backend.SetVolumeLevelerAsync(false).ConfigureAwait(true);
+            await backend.SetSurroundVirtualizerAsync(false).ConfigureAwait(true);
+            await backend.SetProfileAsync(state.Profile).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is AudioBackendException or InvalidOperationException)
+        {
+            // No Dolby installation to reset. Uninstall continues regardless.
+        }
+
+        Shutdown(0);
     }
 
     // Keeps the tray tooltip on the same status line the popup shows.
@@ -151,7 +200,7 @@ public partial class App : Application
         }
 
         _settings.Macros = [.. window.Result];
-        _settingsStore.Save(_settings);
+        _settingsStore?.Save(_settings);
         ApplyHotkeys();
 
         _viewModel?.SetStatus(window.Result.Count switch
@@ -181,6 +230,7 @@ public partial class App : Application
             _popup = new PopupWindow { DataContext = _viewModel };
             _popup.EqualizerRequested += OnEqualizerRequested;
             _popup.HotkeysRequested += OnSettingsRequested;
+            _popup.SetupRequested += OnSetupRequested;
         }
 
         return _popup;
@@ -196,6 +246,14 @@ public partial class App : Application
         _trimmer?.Touch();
         EnsurePopup().ShowNearTray();
         await _viewModel.RefreshAsync().ConfigureAwait(true);
+
+        // Show the setup window once per session on the first popup, then let
+        // the in-popup banner carry the message.
+        if (_viewModel.NeedsSetup && !_setupPrompted)
+        {
+            _setupPrompted = true;
+            ShowRequirements();
+        }
     }
 
     // Another launch asked us to surface the popup. Comes from a pool thread.
@@ -206,6 +264,12 @@ public partial class App : Application
     {
         if (_backend is null)
         {
+            return;
+        }
+
+        if (_viewModel is { IsAvailable: false })
+        {
+            ShowRequirements();
             return;
         }
 
@@ -230,11 +294,35 @@ public partial class App : Application
         {
             return;
         }
-
         _trimmer?.Touch();
 
         var window = new DiagnosticsWindow(_backend);
         window.ShowDialog();
+    }
+
+    private void OnSetupRequested(object? sender, EventArgs e) => ShowRequirements();
+
+    /// <summary>Shows the prerequisite checklist and re-opens DAX if it passes.</summary>
+    private void ShowRequirements()
+    {
+        _setupPrompted = true;
+
+        var window = new RequirementsWindow(DaxRequirementChecker.Check());
+
+        if (_popup is { IsVisible: true })
+        {
+            window.Owner = _popup;
+        }
+
+        window.ShowDialog();
+
+        var updated = DaxRequirementChecker.Check();
+        _viewModel?.ApplyRequirements(updated);
+
+        if (updated.IsReady)
+        {
+            _ = _viewModel?.RefreshAsync();
+        }
     }
 
     private void OnExitRequested(object? sender, EventArgs e) => Shutdown();

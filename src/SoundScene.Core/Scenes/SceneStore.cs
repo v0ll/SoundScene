@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using SoundScene.Core.Storage;
 
 namespace SoundScene.Core.Scenes;
 
@@ -30,8 +31,7 @@ public sealed class SceneStore
     public string FilePath { get; }
 
     public static string DefaultFilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SoundScene",
+        AppPaths.DataDirectory,
         "scenes.json");
 
     public IReadOnlyList<Scene> Load()

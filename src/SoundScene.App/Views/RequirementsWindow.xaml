@@ -1,0 +1,92 @@
+<Window x:Class="SoundScene.App.Views.RequirementsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Set up SoundScene"
+        Width="620"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SurfaceBrush}">
+    <StackPanel Margin="22">
+        <TextBlock Text="Set up SoundScene"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource TextBrush}" />
+        <TextBlock Text="SoundScene is a controller for Dolby Access. It does not include, install, or replace Dolby's software."
+                   FontSize="11"
+                   Foreground="{StaticResource MutedBrush}"
+                   TextWrapping="Wrap"
+                   Margin="0,4,0,0" />
+
+        <ItemsControl x:Name="RequirementList" Margin="0,18,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,0,0,11">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="{Binding Glyph}"
+                                   Foreground="{Binding Brush}"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Top" />
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding Name}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextBrush}" />
+                            <TextBlock Text="{Binding Detail}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,1,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Background="#141418"
+                CornerRadius="6"
+                Padding="10,8"
+                Margin="0,4,0,0">
+            <TextBlock x:Name="StatusText"
+                       FontSize="11"
+                       Foreground="{StaticResource MutedBrush}"
+                       TextWrapping="Wrap" />
+        </Border>
+
+        <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Content="Open Microsoft Store"
+                    Style="{StaticResource GhostButton}"
+                    Padding="12,6"
+                    Click="OnStore" />
+
+            <StackPanel Grid.Column="2"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <Button Content="Recheck"
+                        Style="{StaticResource GhostButton}"
+                        Padding="12,6"
+                        Margin="0,0,8,0"
+                        Click="OnRecheck" />
+                <Button x:Name="ContinueButton"
+                        Content="Continue"
+                        Style="{StaticResource PrimaryButton}"
+                        Padding="16,6"
+                        IsDefault="True"
+                        Click="OnContinue" />
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</Window>

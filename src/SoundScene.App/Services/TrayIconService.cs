@@ -41,12 +41,14 @@ public sealed class TrayIconService : IDisposable
     private const int CommandDiagnostics = 4;
     private const int CommandStartup = 5;
     private const int CommandExit = 6;
+    private const int CommandSetup = 7;
 
     private const int MaxTooltipLength = 127;
     private const int IdiApplication = 32512;
 
     private readonly HwndSource _source;
     private readonly int _taskbarCreatedMessage;
+    private readonly bool _allowStartup;
     private readonly IntPtr _icon;
     private readonly IntPtr _largeIcon;
     private readonly bool _ownsIcon;
@@ -54,8 +56,10 @@ public sealed class TrayIconService : IDisposable
     private bool _added;
     private bool _disposed;
 
-    public TrayIconService()
+    public TrayIconService(bool allowStartup = true)
     {
+        _allowStartup = allowStartup;
+
         // A top-level (but never shown) window is required: taskbar-created
         // broadcasts only reach top-level windows, and Shell_NotifyIcon needs a
         // handle for its callback message.
@@ -81,6 +85,8 @@ public sealed class TrayIconService : IDisposable
     public event EventHandler? EqualizerRequested;
 
     public event EventHandler? DiagnosticsRequested;
+
+    public event EventHandler? SetupRequested;
 
     public event EventHandler? ExitRequested;
 
@@ -213,10 +219,16 @@ public sealed class TrayIconService : IDisposable
             _ = AppendMenuW(menu, MfString, CommandHotkeys, "Hotkeys\u2026");
             _ = AppendMenuW(menu, MfSeparator, 0, null);
             _ = AppendMenuW(menu, MfString, CommandDiagnostics, "Diagnostics\u2026");
-            _ = AppendMenuW(menu, MfSeparator, 0, null);
+            _ = AppendMenuW(menu, MfString, CommandSetup, "Setup requirements\u2026");
 
-            var startupFlags = MfString | (StartupRegistration.IsEnabled ? MfChecked : 0);
-            _ = AppendMenuW(menu, startupFlags, CommandStartup, "Start with Windows");
+            if (_allowStartup)
+            {
+                _ = AppendMenuW(menu, MfSeparator, 0, null);
+
+                var startupFlags = MfString | (StartupRegistration.IsEnabled ? MfChecked : 0);
+                _ = AppendMenuW(menu, startupFlags, CommandStartup, "Start with Windows");
+            }
+
             _ = AppendMenuW(menu, MfSeparator, 0, null);
             _ = AppendMenuW(menu, MfString, CommandExit, "Exit");
 
@@ -260,6 +272,10 @@ public sealed class TrayIconService : IDisposable
 
             case CommandDiagnostics:
                 DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case CommandSetup:
+                SetupRequested?.Invoke(this, EventArgs.Empty);
                 break;
 
             case CommandStartup:

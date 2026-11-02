@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using SoundScene.App.Services;
 using SoundScene.Core.Audio;
+using SoundScene.Core.Backends.Dolby;
 
 namespace SoundScene.App.Views;
 
@@ -54,6 +55,9 @@ public partial class DiagnosticsWindow : Window
             $"SoundScene {Version()}",
             $"backend  : {_backend.Name}",
             $"captured : {captured}",
+            string.Empty,
+            "Requirements:",
+            DaxRequirementChecker.Check().ToText(),
             string.Empty,
             body);
 

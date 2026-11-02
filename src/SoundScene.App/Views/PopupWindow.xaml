@@ -43,6 +43,7 @@
                             FontSize="10"
                             Margin="0,0,8,0"
                             ToolTip="Open the graphic equalizer"
+                            IsEnabled="{Binding IsAvailable}"
                             Click="OnEqualizerClick" />
                     <TextBlock Text="{Binding BackendName}"
                                FontSize="11"
@@ -51,7 +52,40 @@
                 </StackPanel>
             </Grid>
 
-            <ItemsControl ItemsSource="{Binding Profiles}">
+            <Border Background="#3A2222"
+                    CornerRadius="8"
+                    Margin="4,0,4,10"
+                    Padding="10,8"
+                    Visibility="{Binding NeedsSetup, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="Setup needed"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="#FFB4B4" />
+                        <TextBlock Text="{Binding RequirementSummary}"
+                                   FontSize="10"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,8,0" />
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Content="Set up"
+                            Style="{StaticResource GhostButton}"
+                            Padding="10,4"
+                            VerticalAlignment="Center"
+                            Click="OnSetupClick" />
+                </Grid>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Profiles}"
+                          IsEnabled="{Binding IsAvailable}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="3" />
@@ -97,6 +131,7 @@
                 <Button Grid.Column="1"
                         Style="{StaticResource GhostButton}"
                         Content="+ Save current"
+                        IsEnabled="{Binding IsAvailable}"
                         Command="{Binding CaptureSceneCommand}" />
             </Grid>
 
@@ -119,6 +154,7 @@
 
             <ScrollViewer MaxHeight="190"
                           Margin="0,4,0,0"
+                          IsEnabled="{Binding IsAvailable}"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl ItemsSource="{Binding Scenes}">

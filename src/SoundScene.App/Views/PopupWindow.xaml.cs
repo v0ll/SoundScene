@@ -21,6 +21,9 @@ public partial class PopupWindow : Window
     /// <summary>Raised when the user asks for the hotkey editor from the header.</summary>
     public event EventHandler? HotkeysRequested;
 
+    /// <summary>Raised when the user asks to fix a missing prerequisite.</summary>
+    public event EventHandler? SetupRequested;
+
     /// <summary>Shows the popup anchored to the bottom-right of the work area.</summary>
     public void ShowNearTray()
     {
@@ -79,4 +82,7 @@ public partial class PopupWindow : Window
 
     private void OnHotkeysClick(object sender, RoutedEventArgs e) =>
         HotkeysRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnSetupClick(object sender, RoutedEventArgs e) =>
+        SetupRequested?.Invoke(this, EventArgs.Empty);
 }

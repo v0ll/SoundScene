@@ -9,6 +9,7 @@
         <SolidColorBrush x:Key="ActiveBrush" Color="#4CC2FF" />
         <SolidColorBrush x:Key="TextBrush" Color="#F2F2F2" />
         <SolidColorBrush x:Key="MutedBrush" Color="#8A8A93" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
         <Style x:Key="ProfileButton" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource TileBrush}" />
