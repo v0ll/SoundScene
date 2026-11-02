@@ -37,6 +37,9 @@ surface would be unsupported reverse engineering.
   the Dolby reset.
 - **Signing:** unsigned for now. `tools\package.ps1` generates SHA-256 hashes;
   signing can be added later without changing the build shape.
+- **Legal:** the self-contained packages include the .NET runtime's
+  `DOTNET-LICENSE.txt` and `DOTNET-THIRD-PARTY-NOTICES.txt`, because the release
+  redistributes that runtime.
 - **Support:** Windows 10 2004 (19041) or newer, x64.
 
 ## Consequences

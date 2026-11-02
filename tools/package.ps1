@@ -92,6 +92,27 @@ foreach ($doc in @("LICENSE.md", "NOTICE.md", "README.md")) {
     }
 }
 
+# A self-contained publish redistributes the .NET runtime; keep its license and
+# third-party notices next to the binaries in both the installer and the ZIP.
+$dotnetRoot = Join-Path $env:ProgramFiles "dotnet"
+$dotnetLicense = Join-Path $dotnetRoot "LICENSE.txt"
+$dotnetNotices = Join-Path $dotnetRoot "ThirdPartyNotices.txt"
+
+if (-not (Test-Path $dotnetLicense) -or -not (Test-Path $dotnetNotices)) {
+    throw "Could not find the .NET runtime license notices in $dotnetRoot."
+}
+
+Copy-Item $dotnetLicense (Join-Path $publish "DOTNET-LICENSE.txt") -Force
+Copy-Item $dotnetNotices (Join-Path $publish "DOTNET-THIRD-PARTY-NOTICES.txt") -Force
+
+# Keep the README's relative screenshots working in the installed/portable copy.
+$docsImages = Join-Path $root "docs\images"
+if (Test-Path $docsImages) {
+    $publishedImages = Join-Path $publish "docs\images"
+    New-Item -ItemType Directory -Path $publishedImages -Force | Out-Null
+    Copy-Item (Join-Path $docsImages "*") $publishedImages -Force
+}
+
 Write-Host "Building the portable ZIP..."
 New-Item -ItemType Directory -Path $portable -Force | Out-Null
 Copy-Item (Join-Path $publish "*") $portable -Recurse -Force
