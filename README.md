@@ -2,7 +2,7 @@
 
 A LIGHTWEIGHT profile switcher that lets you flip between profiles and settings INSTANTLY for **Dolby Access** on ASUS ROG laptops.
 
-From a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time, while maintaining around 80MB~ RAM usage.
+From a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time, while idling at a few megabytes of private working set.
 
 ---
 
@@ -23,6 +23,9 @@ SoundScene aims to be the G-Helper of Dolby audio: small, fast, keyboard-driven,
   popup header and the tray menu; existing single-toggle settings are migrated automatically.
 - **Tray-first UI** - compact popup for quick switching and scene recall. Number keys 1-6 pick a
   profile, Escape closes it.
+- **Low idle footprint** - the tray icon is native `Shell_NotifyIcon` (no WinForms), the popup is
+  built on first use, and an idle trimmer compacts the heap and returns unused pages after 20
+  seconds. Idle private working set is a few MB; the popup costs tens of MB only while it is open.
 - **One process** - a second launch wakes the running instance instead of racing it for the
   same DAX profile.
 - **Start with Windows** - optional HKCU Run entry, toggled from the tray menu.

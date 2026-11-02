@@ -25,6 +25,7 @@ public partial class App : Application
     private PopupWindow? _popup;
     private TrayIconService? _tray;
     private HotkeyService? _hotkeys;
+    private IdleMemoryTrimmer? _trimmer;
     private AppSettings _settings = new();
 
     protected override void OnStartup(StartupEventArgs e)
@@ -51,10 +52,10 @@ public partial class App : Application
 
         _viewModel = new TrayViewModel(_backend, _scenes, PromptForSceneName);
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        _popup = new PopupWindow { DataContext = _viewModel };
-        _popup.EqualizerRequested += OnEqualizerRequested;
-        _popup.HotkeysRequested += OnSettingsRequested;
 
+        // The popup is built on first use. Starting with Windows should cost a
+        // tray icon and a view model, not a hidden WPF window tree.
+        _trimmer = new IdleMemoryTrimmer();
         _hotkeys = new HotkeyService();
 
         _tray = new TrayIconService();
@@ -116,6 +117,8 @@ public partial class App : Application
             return;
         }
 
+        _trimmer?.Touch();
+
         try
         {
             // An absolute action needs no read; a toggle has to see what is
@@ -139,6 +142,8 @@ public partial class App : Application
 
     private void OnSettingsRequested(object? sender, EventArgs e)
     {
+        _trimmer?.Touch();
+
         var window = new MacroWindow(_settings.Macros);
         if (window.ShowDialog() != true)
         {
@@ -161,7 +166,7 @@ public partial class App : Application
     {
         var window = new PromptWindow("Save scene", "Name this scene", suggested);
 
-        if (_popup is not null)
+        if (_popup is { IsVisible: true })
         {
             window.Owner = _popup;
         }
@@ -169,14 +174,27 @@ public partial class App : Application
         return window.ShowDialog() == true ? window.Result : null;
     }
 
+    private PopupWindow EnsurePopup()
+    {
+        if (_popup is null)
+        {
+            _popup = new PopupWindow { DataContext = _viewModel };
+            _popup.EqualizerRequested += OnEqualizerRequested;
+            _popup.HotkeysRequested += OnSettingsRequested;
+        }
+
+        return _popup;
+    }
+
     private async void OnPopupRequested(object? sender, EventArgs e)
     {
-        if (_popup is null || _viewModel is null)
+        if (_viewModel is null)
         {
             return;
         }
 
-        _popup.ShowNearTray();
+        _trimmer?.Touch();
+        EnsurePopup().ShowNearTray();
         await _viewModel.RefreshAsync().ConfigureAwait(true);
     }
 
@@ -190,6 +208,8 @@ public partial class App : Application
         {
             return;
         }
+
+        _trimmer?.Touch();
 
         var window = new EqWindow(new EqViewModel(_backend));
 
@@ -211,6 +231,8 @@ public partial class App : Application
             return;
         }
 
+        _trimmer?.Touch();
+
         var window = new DiagnosticsWindow(_backend);
         window.ShowDialog();
     }
@@ -219,6 +241,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _trimmer?.Dispose();
         _tray?.Dispose();
         _hotkeys?.Dispose();
         _instance?.Dispose();
