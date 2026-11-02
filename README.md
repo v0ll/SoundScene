@@ -160,7 +160,7 @@ dotnet build SoundScene.slnx
 The native bridge is built separately with CMake:
 
 ```powershell
-cmake -S native -B native/build -G "Visual Studio 17 2022" -A x64
+cmake -S native\SoundScene.DaxBridge -B native/build -G "Visual Studio 17 2022" -A x64
 cmake --build native/build --config Release
 ```
 

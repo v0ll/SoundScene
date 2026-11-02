@@ -49,7 +49,7 @@ if (-not (Test-Path $bridge)) {
     Write-Host "Building the native DAX bridge..."
     $nativeBuild = Join-Path $root "native\build"
     if (-not (Test-Path (Join-Path $nativeBuild "CMakeCache.txt"))) {
-        & cmake -S (Join-Path $root "native") -B $nativeBuild -G "Visual Studio 17 2022" -A x64
+        & cmake -S (Join-Path $root "native\SoundScene.DaxBridge") -B $nativeBuild -G "Visual Studio 17 2022" -A x64
         if ($LASTEXITCODE -ne 0) { throw "CMake configure failed." }
     }
 
