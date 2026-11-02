@@ -38,31 +38,44 @@ The ASUS ROG Zephyrus G14 ships with Dolby Access, which sounds excellent but th
 
 ## INSTALLING
 
-Build the native bridge once, then install the app for the current user - no elevation, nothing
-outside your profile:
+For normal use, download `SoundScene-Setup-x.y.z.exe` from the GitHub releases page and run it.
+It installs for the current user only, so there is no elevation prompt, and it adds SoundScene to
+Settings > Apps for clean removal.
+
+`SoundScene-Portable-x.y.z.zip` is the alternative: extract it anywhere and run
+`SoundScene.App.exe`. Settings, scenes, and the private Dolby client cache live in the `data`
+folder next to the executable, and "Start with Windows" is disabled so deleting the folder removes
+everything.
+
+The first launch checks the prerequisites and offers a **Set up** button if something is missing.
+The same checklist is available later from the tray menu under **Setup requirements…**.
+
+For development, build the native bridge and install the framework-dependent build:
 
 ```powershell
 cmake --build native\build --config Release
 powershell -ExecutionPolicy Bypass -File tools\install.ps1
 ```
 
-That publishes to `%LOCALAPPDATA%\Programs\SoundScene` and creates a Start Menu shortcut, so the app
-can be launched (and pinned to the taskbar) like any other program. `-Desktop` adds a desktop
-shortcut too. The published build is framework-dependent: it needs the **.NET 10 Desktop Runtime**,
-which the SDK already includes.
-
-Launching it by hand opens the popup. The "Start with Windows" entry runs it with `--background`, so
-a login only puts the icon in the tray.
-
-For development, run it from source:
-
-```powershell
-dotnet run --project src\SoundScene.App -c Release
-```
-
 The app lives in the tray. Left-click the icon for the popup, right-click for the graphic
-equalizer, hotkeys, and exit. Scenes and settings are stored under
-`%APPDATA%\SoundScene\`.
+equalizer, hotkeys, setup, diagnostics, and exit. Scenes and settings are stored under
+`%APPDATA%\SoundScene\` for a normal install, or under `data\` for a portable copy.
+
+## UNINSTALLING
+
+Use **Settings > Apps > SoundScene > Uninstall** (or the installer's uninstaller). It stops the
+app and asks two questions:
+
+- **Delete settings and scenes?** Yes removes `%APPDATA%\SoundScene`; No keeps them for a future
+  reinstall.
+- **Reset Dolby EQ, leveler, and surround?** No by default, because the last profile and curve are
+  legitimate Dolby state. If selected, SoundScene puts Personalize back to flat/off before it is
+  removed.
+
+The uninstaller always removes the install folder, Start Menu/desktop shortcuts, the
+`Start with Windows` entry, and `%LOCALAPPDATA%\SoundScene` (the copied Dolby client cache). It
+does **not** remove Dolby Access, the ASUS driver, or `C:\ProgramData\Dolby\DAX3\Runtime.xml`.
+For a script-based install, `tools\uninstall.ps1` does the same cleanup.
 
 A scene records the active profile, and the EQ curve only when it was captured on **Personalize** -
 Dolby keeps equalizer levels per profile and only exposes them on that one, so capturing zeros from
@@ -86,10 +99,19 @@ cannot be consumed directly from .NET without a projection we don't control.
 
 ## REQUIREMENTS
 
-- Windows 11
-- .NET 10 SDK
-- Visual Studio 2022 Build Tools with **Desktop development with C++** (for the native bridge)
-- Dolby Access installed, with the DAX driver present
+- Windows 10 version 2004 (build 19041) or newer, or Windows 11, x64
+- **Dolby Access** installed for your Windows user. It is free from the Microsoft Store
+  ([product ID 9N0866FS04W8](ms-windows-store://pdp/?productid=9N0866FS04W8)).
+- The ASUS/Realtek **Dolby Atmos driver**, which installs the `DolbyDAXAPI` service and the APOs.
+
+**The driver alone is not enough.** The driver provides the DAX service and audio processing, but
+the supported control API (`DAXRPCClient.dll` / `DAX.winmd`) ships only in the Dolby Access package.
+SoundScene copies that client at runtime; it does not bundle or redistribute any Dolby binary. With
+only the driver, the app installs and opens but cannot change profiles or EQ, so it shows a setup
+checklist and a Store button instead.
+
+- .NET 10 SDK, only if you build from source. The release installer is self-contained.
+- Visual Studio 2022 Build Tools with **Desktop development with C++**, only for the native bridge.
 
 ## BUILDING
 
@@ -97,12 +119,25 @@ cannot be consumed directly from .NET without a projection we don't control.
 dotnet build SoundScene.slnx
 ```
 
-The native bridge is built separately with CMake once the spike lands:
+The native bridge is built separately with CMake:
 
 ```powershell
 cmake -S native -B native/build -G "Visual Studio 17 2022" -A x64
 cmake --build native/build --config Release
 ```
+
+## PACKAGING
+
+The release build is self-contained `win-x64`, so users do not need the .NET runtime:
+
+```powershell
+winget install JRSoftware.InnoSetup
+powershell -ExecutionPolicy Bypass -File tools\package.ps1
+```
+
+That writes `SoundScene-Setup-x.y.z.exe`, `SoundScene-Portable-x.y.z.zip`, and `SHA256SUMS.txt` to
+`dist\`. Bump `VersionPrefix` in `Directory.Build.props` before a release. The artifacts are
+unsigned, so Windows SmartScreen may warn; publish the SHA-256 file alongside them.
 
 ## TESTING
 
