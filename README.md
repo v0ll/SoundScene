@@ -1,10 +1,14 @@
 # SoundScene
 
+[![Latest release](https://img.shields.io/github/v/release/v0ll/SoundScene?label=download)](https://github.com/v0ll/SoundScene/releases/latest)
+[![build](https://github.com/v0ll/SoundScene/actions/workflows/build.yml/badge.svg)](https://github.com/v0ll/SoundScene/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
+A LIGHTWEIGHT companion app for **Dolby Access** that lets you flip between profiles and settings
+INSTANTLY on ASUS ROG Zephyrus laptops. SoundScene is a controller, not a replacement: Dolby Access
+and the ASUS Dolby Atmos driver must already be installed.
 
-A LIGHTWEIGHT Dolby Access alternative that lets you flip between profiles and settings INSTANTLY for ASUS ROG Zephyrus laptops.
-
-<img width="303" height="325" alt="app" src="https://github.com/user-attachments/assets/061c7dc2-fee3-4b4a-a088-91b9d8d07562" />
+<img width="303" height="325" alt="SoundScene popup" src="docs/images/popup.png" />
 
 Does it all from a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time, while idling at only few megabytes.
 
@@ -15,6 +19,9 @@ Some of the ASUS ROG Zephyrus laptops newer than 2020 ships with Dolby Access, b
 
 Switching from one profile to another literally means opening the app, waiting for it to load, and navigating. There is nothing that makes changing profiles less time consuming.
 
+Tested on the **ROG Zephyrus G14 GA403UV** with Windows 11 and Dolby Access 3.27. Other DAX3-based
+ROG models should work, but have not been verified.
+
 ## Features
 
 - **Instant profile switching** - with your designated macro key, main profiles (Movie / Music / Game / Voice / Personalize / Dynamic).
@@ -24,7 +31,7 @@ Switching from one profile to another literally means opening the app, waiting f
   toggles between two, with a single global key combination. The editor is available from the
   popup header and the tray menu; existing single-toggle settings are migrated automatically.
 
-  <img width="792" height="556" alt="hotkeys" src="https://github.com/user-attachments/assets/13873015-768d-48f1-9180-7b5aa33a3f71" />
+  <img width="792" height="556" alt="Hotkey editor" src="docs/images/hotkeys.png" />
 
 - **Tray-first UI** - compact popup for quick switching and scene recall. Number keys 1-6 pick a
   profile, Escape closes it.
@@ -37,13 +44,22 @@ Switching from one profile to another literally means opening the app, waiting f
   changes are written immediately. Includes Dolby's volume leveler and surround virtualizer
   switches. The curve and switches live on Personalize, so the editor activates it while open.
 
-<img width="1257" height="758" alt="eq" src="https://github.com/user-attachments/assets/84b76bbc-9179-4465-834b-604e4c15f972" />
+<img width="1000" alt="Graphic equalizer" src="docs/images/eq.png" />
 
 ## INSTALLING
 
-For normal use, download `SoundScene-Setup-x.y.z.exe` from the GitHub releases page and run it.
-It installs for the current user only, so there is no elevation prompt, and it adds SoundScene to
-Settings > Apps for clean removal.
+Download the **[latest release](https://github.com/v0ll/SoundScene/releases/latest)** and run
+`SoundScene-Setup-x.y.z.exe`. It installs for the current user only, so there is no elevation
+prompt, and it adds SoundScene to Settings > Apps for clean removal.
+
+The installer is **not code-signed yet**, so Windows SmartScreen may say "Windows protected your
+PC". Verify the download against `SHA256SUMS.txt` on the release page first:
+
+```powershell
+Get-FileHash .\SoundScene-Setup-0.2.1.exe -Algorithm SHA256
+```
+
+Then choose **More info > Run anyway**.
 
 `SoundScene-Portable-x.y.z.zip` is the alternative: extract it anywhere and run
 `SoundScene.App.exe`. Settings, scenes, and the private Dolby client cache live in the `data`
@@ -83,6 +99,25 @@ For a script-based install, `tools\uninstall.ps1` does the same cleanup.
 A scene records the active profile, and the EQ curve only when it was captured on **Personalize** -
 Dolby keeps equalizer levels per profile and only exposes them on that one, so capturing zeros from
 Movie would be a lie.
+
+## KNOWN LIMITATIONS
+
+- **Dolby Access and the ASUS Dolby Atmos driver are both required.** The driver alone provides the
+  service and APOs, but not the client API SoundScene uses.
+- Tested on the G14 GA403UV with Windows 11 (build 26100). Windows 10 2004+ is supported by the
+  build and installer, but has not been tested on hardware yet.
+- The Dolby Access package family is currently hardcoded. A machine with a different Dolby/OEM
+  package will show the setup checklist even if another Dolby app is installed.
+- The installer is not code-signed yet, so SmartScreen may warn. Verify `SHA256SUMS.txt`.
+- There is no auto-update yet; check the releases page for new versions.
+- SoundScene changes the active Dolby profile and Personalize EQ state as part of normal use. The
+  uninstaller leaves those changes alone unless you enable the optional Dolby reset.
+
+## SUPPORT
+
+Open an issue at <https://github.com/v0ll/SoundScene/issues>. Include the output of the app's
+**Diagnostics** window, your Windows build, Dolby Access version, and laptop model. For security
+reports, follow [`SECURITY.md`](SECURITY.md) instead of opening a public issue.
 
 ## Architecture
 

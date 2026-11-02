@@ -1,0 +1,84 @@
+name: Bug report
+description: Something in SoundScene does not work
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please include the Diagnostics output if you can - it usually contains
+        the answer (Dolby package version, DAX service, HRESULTs).
+
+  - type: input
+    id: version
+    attributes:
+      label: SoundScene version
+      description: From Settings > Apps, the release tag, or the Diagnostics window.
+      placeholder: "0.2.1"
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and build
+      description: Run `winver` and copy the version and build.
+      placeholder: "Windows 11 24H2, build 26100"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model
+      placeholder: "ROG Zephyrus G14 GA403UV"
+    validations:
+      required: true
+
+  - type: input
+    id: dolby
+    attributes:
+      label: Dolby Access and driver version
+      description: Settings > Apps for Dolby Access; MyASUS/Device Manager for the audio driver.
+      placeholder: "Dolby Access 3.27.12250.0, driver 9.529.820.15.7"
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the popup
+        2. Click ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics output
+      description: Right-click the tray icon > Diagnostics > Copy, then paste here.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am on the latest release.
+          required: true
+        - label: I searched existing issues.
+          required: true
+        - label: Dolby Access and the ASUS Dolby Atmos driver are installed.
+          required: true
