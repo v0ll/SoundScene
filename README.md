@@ -20,7 +20,7 @@ Some of the ASUS ROG Zephyrus laptops newer than 2020 ships with Dolby Access, b
 Switching from one profile to another literally means opening the app, waiting for it to load, and navigating. There is nothing that makes changing profiles less time consuming.
 
 Tested on the **ROG Zephyrus G14 GA403UV** with Windows 11 and Dolby Access 3.27. Other DAX3-based
-ROG models should work, but have not been verified.
+ROG models should work, **but have not been verified.**
 
 ## Features
 
