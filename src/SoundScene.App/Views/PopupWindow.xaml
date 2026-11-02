@@ -30,6 +30,13 @@
                            FontWeight="SemiBold"
                            Foreground="{StaticResource TextBrush}" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Hotkeys"
+                            Style="{StaticResource GhostButton}"
+                            Padding="9,2"
+                            FontSize="10"
+                            Margin="0,0,8,0"
+                            ToolTip="Edit global hotkeys"
+                            Click="OnHotkeysClick" />
                     <Button Content="EQ"
                             Style="{StaticResource GhostButton}"
                             Padding="9,2"

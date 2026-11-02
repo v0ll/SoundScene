@@ -53,6 +53,7 @@ public partial class App : Application
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _popup = new PopupWindow { DataContext = _viewModel };
         _popup.EqualizerRequested += OnEqualizerRequested;
+        _popup.HotkeysRequested += OnSettingsRequested;
 
         _hotkeys = new HotkeyService();
 
@@ -108,7 +109,7 @@ public partial class App : Application
         }
     }
 
-    private async void OnMacroPressed(ToggleMacro macro)
+    private async void OnMacroPressed(HotkeyMacro macro)
     {
         if (_backend is null || _viewModel is null)
         {
@@ -117,8 +118,16 @@ public partial class App : Application
 
         try
         {
-            var state = await _backend.GetStateAsync().ConfigureAwait(true);
-            var target = macro.Next(state.Profile);
+            // An absolute action needs no read; a toggle has to see what is
+            // active right now, including changes made in Dolby Access.
+            var target = macro.Profile;
+
+            if (macro.Action == MacroAction.ToggleProfiles)
+            {
+                var state = await _backend.GetStateAsync().ConfigureAwait(true);
+                target = macro.Next(state.Profile);
+            }
+
             await _backend.SetProfileAsync(target).ConfigureAwait(true);
             await _viewModel.RefreshAsync().ConfigureAwait(true);
         }
@@ -130,19 +139,22 @@ public partial class App : Application
 
     private void OnSettingsRequested(object? sender, EventArgs e)
     {
-        var current = _settings.Macros.FirstOrDefault() ?? AppSettings.CreateDefault().Macros[0];
-
-        var window = new MacroWindow(current);
-        if (window.ShowDialog() != true || window.Result is null)
+        var window = new MacroWindow(_settings.Macros);
+        if (window.ShowDialog() != true)
         {
             return;
         }
 
-        _settings.Macros = [window.Result];
+        _settings.Macros = [.. window.Result];
         _settingsStore.Save(_settings);
         ApplyHotkeys();
 
-        _viewModel?.SetStatus($"Hotkey set to {window.Result.Gesture.DisplayName}");
+        _viewModel?.SetStatus(window.Result.Count switch
+        {
+            0 => "No hotkeys are set",
+            1 => $"1 hotkey \u00B7 {window.Result[0].Description}",
+            var count => $"{count} hotkeys active",
+        });
     }
 
     private string? PromptForSceneName(string suggested)

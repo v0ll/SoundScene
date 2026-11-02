@@ -25,7 +25,7 @@ public sealed class TrayIconService : IDisposable
         {
             Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold),
         };
-        var settings = new ToolStripMenuItem("Hotkey settings\u2026", null,
+        var settings = new ToolStripMenuItem("Hotkeys\u2026", null,
             (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty));
         var equalizer = new ToolStripMenuItem("Graphic equalizer\u2026", null,
             (_, _) => EqualizerRequested?.Invoke(this, EventArgs.Empty));

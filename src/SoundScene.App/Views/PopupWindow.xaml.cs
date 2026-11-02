@@ -18,6 +18,9 @@ public partial class PopupWindow : Window
     /// <summary>Raised when the user asks for the equalizer from the header button.</summary>
     public event EventHandler? EqualizerRequested;
 
+    /// <summary>Raised when the user asks for the hotkey editor from the header.</summary>
+    public event EventHandler? HotkeysRequested;
+
     /// <summary>Shows the popup anchored to the bottom-right of the work area.</summary>
     public void ShowNearTray()
     {
@@ -73,4 +76,7 @@ public partial class PopupWindow : Window
 
     private void OnEqualizerClick(object sender, RoutedEventArgs e) =>
         EqualizerRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnHotkeysClick(object sender, RoutedEventArgs e) =>
+        HotkeysRequested?.Invoke(this, EventArgs.Empty);
 }
