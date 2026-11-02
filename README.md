@@ -1,14 +1,19 @@
 # SoundScene
 
+
+
 A LIGHTWEIGHT Dolby Access alternative that lets you flip between profiles and settings INSTANTLY for ASUS ROG Zephyrus laptops.
+
+<img width="303" height="325" alt="app" src="https://github.com/user-attachments/assets/061c7dc2-fee3-4b4a-a088-91b9d8d07562" />
 
 Does it all from a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time, while idling at only few megabytes.
 
----
 
 ## Why
 
-The ASUS ROG Zephyrus G14 ships with Dolby Access, which sounds excellent but the app lacks useful QoL enhancements. Switching from one profile to another literally means opening the app, waiting for it to load, and navigating. There is nothing that makes changing profiles less time consuming.
+Some of the ASUS ROG Zephyrus laptops newer than 2020 ships with Dolby Access, but the app itself lacks QoL. 
+
+Switching from one profile to another literally means opening the app, waiting for it to load, and navigating. There is nothing that makes changing profiles less time consuming.
 
 ## Features
 
@@ -18,23 +23,21 @@ The ASUS ROG Zephyrus G14 ships with Dolby Access, which sounds excellent but th
 - **Macro hotkeys** - as many as you want. Each one either switches straight to a profile or
   toggles between two, with a single global key combination. The editor is available from the
   popup header and the tray menu; existing single-toggle settings are migrated automatically.
+
+  <img width="792" height="556" alt="hotkeys" src="https://github.com/user-attachments/assets/13873015-768d-48f1-9180-7b5aa33a3f71" />
+
 - **Tray-first UI** - compact popup for quick switching and scene recall. Number keys 1-6 pick a
   profile, Escape closes it.
-- **Low idle footprint** - the tray icon is native `Shell_NotifyIcon` (no WinForms), the popup is
-  built on first use, and an idle trimmer compacts the heap and returns unused pages after 20
-  seconds. Idle private working set is a few MB; the popup costs tens of MB only while it is open.
+- **Low idle footprint** - Idle private working set is a few MB; the popup costs tens of MB only while it is open.
 - **One process** - a second launch wakes the running instance instead of racing it for the
   same DAX profile.
-- **Start with Windows** - OPTIONAL HKCU Run entry, toggled from the tray menu.
+- **Start with Windows** - OPTIONAL entry, toggled from the tray menu.
 - **EQ editor** - a simple 10-slider view by default, with all 20 driver bands behind an
   **Advanced** tab. Type a level in dB or drag a slider; values snap to flat near 0 dB and
   changes are written immediately. Includes Dolby's volume leveler and surround virtualizer
   switches. The curve and switches live on Personalize, so the editor activates it while open.
-- **Backend abstraction** - a Dolby DAX backend plus an Equalizer APO fallback, so the app degrades
-  gracefully instead of dying when the Dolby stack is unavailable. The APO backend is designed
-  ([ADR 0003](docs/adr/0003-equalizer-apo-fallback.md)) but not implemented.
-- **Diagnostics** - the tray menu can dump the real backend state (HRESULTs, endpoints, the
-  copied DLL path) for a bug report.
+
+<img width="1257" height="758" alt="eq" src="https://github.com/user-attachments/assets/84b76bbc-9179-4465-834b-604e4c15f972" />
 
 ## INSTALLING
 
