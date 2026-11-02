@@ -33,6 +33,18 @@ public interface IAudioBackend : IAsyncDisposable
     Task SetGeqAsync(IReadOnlyList<int> levels, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Turns Dolby's volume leveler on or off.
+    /// </summary>
+    /// <remarks>
+    /// The switch is stored on the Personalize sub-profile, like the EQ, so
+    /// implementations must apply the same switch-write-restore dance.
+    /// </remarks>
+    Task SetVolumeLevelerAsync(bool enabled, CancellationToken cancellationToken = default);
+
+    /// <summary>Turns Dolby's surround virtualizer on or off.</summary>
+    Task SetSurroundVirtualizerAsync(bool enabled, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Human-readable dump of the backend's real state, for bug reports.
     /// </summary>
     /// <remarks>

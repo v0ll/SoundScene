@@ -265,6 +265,14 @@ SS_API ss_result ss_dump_state(char* report, uint32_t reportLen)
     hr = dax->get_IEQ(&ieq);
     Append(out, "IEQ                 : %d (hr=0x%08X)\r\n", ieq, static_cast<unsigned long>(hr));
 
+    INT32 leveler = -1;
+    hr = dax->get_VolumeLevelerEnable(&leveler);
+    Append(out, "VolumeLevelerEnable : %d (hr=0x%08X)\r\n", leveler, static_cast<unsigned long>(hr));
+
+    INT32 virtualizer = -1;
+    hr = dax->get_SurroundVirtualizerEnable(&virtualizer);
+    Append(out, "SurroundVirtualizer : %d (hr=0x%08X)\r\n", virtualizer, static_cast<unsigned long>(hr));
+
     INT32 apiStatus = -1;
     hr = dax->GetAPIStatus(&apiStatus);
     Append(out, "GetAPIStatus        : %d (hr=0x%08X)\r\n", apiStatus, static_cast<unsigned long>(hr));
@@ -392,6 +400,57 @@ SS_API ss_result ss_set_geq(const int32_t* values, uint32_t count)
 
     return static_cast<ss_result>(
         g_session.dax->put_GEQLevels(count, const_cast<INT32*>(values)));
+}
+
+SS_API ss_result ss_get_features(int32_t* volumeLeveler, int32_t* surroundVirtualizer)
+{
+    if (g_session.dax == nullptr)
+    {
+        return -1;
+    }
+
+    INT32 value = 0;
+    HRESULT hr = g_session.dax->get_VolumeLevelerEnable(&value);
+    if (FAILED(hr))
+    {
+        return static_cast<ss_result>(hr);
+    }
+    if (volumeLeveler != nullptr)
+    {
+        *volumeLeveler = value;
+    }
+
+    hr = g_session.dax->get_SurroundVirtualizerEnable(&value);
+    if (FAILED(hr))
+    {
+        return static_cast<ss_result>(hr);
+    }
+    if (surroundVirtualizer != nullptr)
+    {
+        *surroundVirtualizer = value;
+    }
+
+    return 0;
+}
+
+SS_API ss_result ss_set_volume_leveler(int32_t enabled)
+{
+    if (g_session.dax == nullptr)
+    {
+        return -1;
+    }
+
+    return static_cast<ss_result>(g_session.dax->put_VolumeLevelerEnable(enabled));
+}
+
+SS_API ss_result ss_set_surround_virtualizer(int32_t enabled)
+{
+    if (g_session.dax == nullptr)
+    {
+        return -1;
+    }
+
+    return static_cast<ss_result>(g_session.dax->put_SurroundVirtualizerEnable(enabled));
 }
 
 SS_API ss_result ss_get_state(int32_t* profile,

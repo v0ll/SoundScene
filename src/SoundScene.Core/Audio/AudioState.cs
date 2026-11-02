@@ -18,6 +18,16 @@ public sealed record AudioState
     public int Ieq { get; init; }
 
     /// <summary>
+    /// Volume leveler switch of the active profile's sub-profile.
+    /// </summary>
+    public bool VolumeLevelerEnabled { get; init; }
+
+    /// <summary>
+    /// Surround virtualizer switch of the active profile's sub-profile.
+    /// </summary>
+    public bool SurroundVirtualizerEnabled { get; init; }
+
+    /// <summary>
     /// The 20 graphic-EQ bands, when they are meaningful for the active profile.
     /// </summary>
     /// <remarks>

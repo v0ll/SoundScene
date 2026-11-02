@@ -84,6 +84,26 @@ public sealed class MockBackend : IAudioBackend
         return Task.CompletedTask;
     }
 
+    public Task SetVolumeLevelerAsync(bool enabled, CancellationToken cancellationToken = default)
+    {
+        lock (_sync)
+        {
+            _state = _state with { VolumeLevelerEnabled = enabled };
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task SetSurroundVirtualizerAsync(bool enabled, CancellationToken cancellationToken = default)
+    {
+        lock (_sync)
+        {
+            _state = _state with { SurroundVirtualizerEnabled = enabled };
+        }
+
+        return Task.CompletedTask;
+    }
+
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     public Task<string> GetDiagnosticsAsync(CancellationToken cancellationToken = default)
@@ -96,6 +116,8 @@ public sealed class MockBackend : IAudioBackend
                 sub-profile    : {_state.SubProfile}
                 dolby enabled  : {_state.DolbyEnabled}
                 ieq            : {_state.Ieq}
+                volume leveler : {_state.VolumeLevelerEnabled}
+                surround       : {_state.SurroundVirtualizerEnabled}
                 geq range      : {_state.GeqMaximumRange}
                 geq bands      : {string.Join(",", _state.GeqLevels)}
                 """;

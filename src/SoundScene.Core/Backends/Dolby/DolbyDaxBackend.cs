@@ -56,38 +56,8 @@ public sealed class DolbyDaxBackend : IAudioBackend
     /// one, so this necessarily flips profiles. It is only called when the user
     /// opens the EQ editor or saves a scene - never on a polling path.
     /// </remarks>
-    public async Task<IReadOnlyList<int>> GetGeqAsync(CancellationToken cancellationToken = default)
-    {
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            EnsureOpen();
-
-            var previous = (AudioProfile)_bridge!.GetProfile();
-            var switched = previous != AudioProfile.Personalize;
-
-            try
-            {
-                if (switched)
-                {
-                    _bridge.SetProfile((int)AudioProfile.Personalize);
-                }
-
-                return _bridge.GetGeq();
-            }
-            finally
-            {
-                if (switched)
-                {
-                    _bridge.SetProfile((int)previous);
-                }
-            }
-        }
-        finally
-        {
-            _gate.Release();
-        }
-    }
+    public Task<IReadOnlyList<int>> GetGeqAsync(CancellationToken cancellationToken = default) =>
+        OnPersonalizeAsync(bridge => (IReadOnlyList<int>)bridge.GetGeq(), cancellationToken);
 
     /// <summary>
     /// Writes the GEQ bands, switching to Personalize first when needed.
@@ -98,10 +68,48 @@ public sealed class DolbyDaxBackend : IAudioBackend
     /// restored afterwards, which is safe because the levels are stored on the
     /// Personalize profile rather than on the active one.
     /// </remarks>
-    public async Task SetGeqAsync(IReadOnlyList<int> levels, CancellationToken cancellationToken = default)
+    public Task SetGeqAsync(IReadOnlyList<int> levels, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(levels);
 
+        return OnPersonalizeAsync(
+            bridge =>
+            {
+                bridge.SetGeq(levels);
+                return true;
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Sets the volume leveler. It is a sub-profile setting like the EQ, so the
+    /// Personalize dance applies.
+    /// </summary>
+    public Task SetVolumeLevelerAsync(bool enabled, CancellationToken cancellationToken = default) =>
+        OnPersonalizeAsync(
+            bridge =>
+            {
+                bridge.SetVolumeLeveler(enabled);
+                return true;
+            },
+            cancellationToken);
+
+    /// <summary>Sets the surround virtualizer, with the same Personalize dance.</summary>
+    public Task SetSurroundVirtualizerAsync(bool enabled, CancellationToken cancellationToken = default) =>
+        OnPersonalizeAsync(
+            bridge =>
+            {
+                bridge.SetSurroundVirtualizer(enabled);
+                return true;
+            },
+            cancellationToken);
+
+    /// <summary>
+    /// Runs <paramref name="work"/> with Personalize active and restores the
+    /// profile afterwards. The gate is held for the whole switch.
+    /// </summary>
+    private async Task<T> OnPersonalizeAsync<T>(Func<DaxBridge, T> work, CancellationToken cancellationToken)
+    {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -117,7 +125,7 @@ public sealed class DolbyDaxBackend : IAudioBackend
                     _bridge.SetProfile((int)AudioProfile.Personalize);
                 }
 
-                _bridge.SetGeq(levels);
+                return work(_bridge);
             }
             finally
             {

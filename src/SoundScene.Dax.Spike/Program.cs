@@ -85,6 +85,7 @@ internal static class Program
                 ["scenes"] => RunSceneProbe().GetAwaiter().GetResult(),
                 ["eq"] => RunEqProbe().GetAwaiter().GetResult(),
                 ["persist"] => RunPersistProbe().GetAwaiter().GetResult(),
+                ["features"] => RunFeatureProbe().GetAwaiter().GetResult(),
                 _ => Usage(),
             };
         }
@@ -104,6 +105,7 @@ internal static class Program
         Console.WriteLine("  SoundScene.Dax.Spike scenes     scene library round-trip");
         Console.WriteLine("  SoundScene.Dax.Spike eq         full 20-band write");
         Console.WriteLine("  SoundScene.Dax.Spike persist    Runtime.xml write-through timing");
+        Console.WriteLine("  SoundScene.Dax.Spike features   volume leveler + surround virtualizer");
         return 1;
     }
 
@@ -365,6 +367,62 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine(ok ? "RESULT         : PASS" : "RESULT         : FAIL");
         return ok ? 0 : 8;
+    }
+
+    private static async Task<int> RunFeatureProbe()
+    {
+        Console.WriteLine("SoundScene - volume leveler and surround probe");
+        Console.WriteLine("=============================================");
+        Console.WriteLine();
+
+        const string runtimeXml = @"C:\ProgramData\Dolby\DAX3\Runtime.xml";
+
+        await using var backend = new DolbyDaxBackend();
+
+        var start = await backend.GetStateAsync();
+        Console.WriteLine($"start          : {start.Profile.DisplayName()}, leveler = {start.VolumeLevelerEnabled}, surround = {start.SurroundVirtualizerEnabled}");
+
+        // The editor activates Personalize before touching these, because they
+        // are stored on its sub-profile alongside the EQ curve.
+        await backend.SetProfileAsync(AudioProfile.Personalize);
+        var personalize = await backend.GetStateAsync();
+        Console.WriteLine($"personalize    : leveler = {personalize.VolumeLevelerEnabled}, surround = {personalize.SurroundVirtualizerEnabled}");
+
+        var targetLeveler = !personalize.VolumeLevelerEnabled;
+        var targetSurround = !personalize.SurroundVirtualizerEnabled;
+
+        await backend.SetVolumeLevelerAsync(targetLeveler);
+        await backend.SetSurroundVirtualizerAsync(targetSurround);
+
+        var flipped = await backend.GetStateAsync();
+        var levelerOk = flipped.VolumeLevelerEnabled == targetLeveler;
+        var surroundOk = flipped.SurroundVirtualizerEnabled == targetSurround;
+        Console.WriteLine($"after flip     : leveler = {flipped.VolumeLevelerEnabled} {(levelerOk ? "OK" : "MISMATCH")}, surround = {flipped.SurroundVirtualizerEnabled} {(surroundOk ? "OK" : "MISMATCH")}");
+
+        await Task.Delay(300);
+        var xml = File.ReadAllText(runtimeXml);
+        var levelerPersisted = xml.Contains(
+            $"Name=\"volume-leveler-enable\" Value=\"{(targetLeveler ? 1 : 0)}\"",
+            StringComparison.Ordinal);
+        var surroundPersisted = xml.Contains(
+            $"Name=\"output-mode-partial-surround-virtualizer-enable\" Value=\"{(targetSurround ? 1 : 0)}\"",
+            StringComparison.Ordinal);
+        Console.WriteLine($"Runtime.xml    : leveler {(levelerPersisted ? "saved" : "MISSING")}, surround {(surroundPersisted ? "saved" : "MISSING")}");
+
+        await backend.SetVolumeLevelerAsync(personalize.VolumeLevelerEnabled);
+        await backend.SetSurroundVirtualizerAsync(personalize.SurroundVirtualizerEnabled);
+        await backend.SetProfileAsync(start.Profile);
+
+        var restored = await backend.GetStateAsync();
+        var restoreOk = restored.VolumeLevelerEnabled == personalize.VolumeLevelerEnabled
+                        && restored.SurroundVirtualizerEnabled == personalize.SurroundVirtualizerEnabled
+                        && restored.Profile == start.Profile;
+        Console.WriteLine($"restore        : leveler = {restored.VolumeLevelerEnabled}, surround = {restored.SurroundVirtualizerEnabled}, profile = {restored.Profile.DisplayName()} {(restoreOk ? "OK" : "MISMATCH")}");
+
+        var ok = levelerOk && surroundOk && levelerPersisted && surroundPersisted && restoreOk;
+        Console.WriteLine();
+        Console.WriteLine(ok ? "RESULT         : PASS" : "RESULT         : FAIL");
+        return ok ? 0 : 9;
     }
 
     private static async Task<int> RunSceneProbe()

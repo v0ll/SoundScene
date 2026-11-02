@@ -79,6 +79,15 @@ SS_API ss_result ss_set_active_profile(int32_t value);
 SS_API ss_result ss_get_geq(int32_t* values, uint32_t capacity, uint32_t* written);
 SS_API ss_result ss_set_geq(const int32_t* values, uint32_t count);
 
+/*
+ * Per-sub-profile feature switches of the active profile. 1 == on, 0 == off.
+ * Like the EQ, these live on the Personalize sub-profile; reading them from
+ * another profile reports that profile's own values.
+ */
+SS_API ss_result ss_get_features(int32_t* volumeLeveler, int32_t* surroundVirtualizer);
+SS_API ss_result ss_set_volume_leveler(int32_t enabled);
+SS_API ss_result ss_set_surround_virtualizer(int32_t enabled);
+
 /* One-shot read of the scalar state. Any out pointer may be null. */
 SS_API ss_result ss_get_state(int32_t* profile,
                               int32_t* subProfile,

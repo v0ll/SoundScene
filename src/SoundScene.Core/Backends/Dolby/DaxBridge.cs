@@ -42,6 +42,9 @@ internal sealed class DaxBridge : IDisposable
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int GetStateFn(out int profile, out int subProfile, out int dolbyEnabled, out int ieq, out int maxRange);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int GetFeaturesFn(out int volumeLeveler, out int surroundVirtualizer);
+
     private readonly IntPtr _module;
     private readonly OpenFn _open;
     private readonly ActionFn _close;
@@ -51,6 +54,9 @@ internal sealed class DaxBridge : IDisposable
     private readonly GetGeqFn _getGeq;
     private readonly SetGeqFn _setGeq;
     private readonly GetStateFn _getState;
+    private readonly GetFeaturesFn _getFeatures;
+    private readonly SetI32Fn _setVolumeLeveler;
+    private readonly SetI32Fn _setSurroundVirtualizer;
     private bool _opened;
 
     public DaxBridge()
@@ -72,6 +78,9 @@ internal sealed class DaxBridge : IDisposable
         _getGeq = Bind<GetGeqFn>("ss_get_geq");
         _setGeq = Bind<SetGeqFn>("ss_set_geq");
         _getState = Bind<GetStateFn>("ss_get_state");
+        _getFeatures = Bind<GetFeaturesFn>("ss_get_features");
+        _setVolumeLeveler = Bind<SetI32Fn>("ss_set_volume_leveler");
+        _setSurroundVirtualizer = Bind<SetI32Fn>("ss_set_surround_virtualizer");
     }
 
     private T Bind<T>(string name) where T : Delegate =>
@@ -128,17 +137,53 @@ internal sealed class DaxBridge : IDisposable
             throw new AudioBackendException($"ss_get_state failed (0x{rc:X8})", rc);
         }
 
+        var features = GetFeatures();
+
         return new AudioState
         {
             Profile = (AudioProfile)profile,
             SubProfile = subProfile,
             DolbyEnabled = enabled != 0,
             Ieq = ieq,
+            VolumeLevelerEnabled = features.VolumeLeveler,
+            SurroundVirtualizerEnabled = features.SurroundVirtualizer,
             GeqLevels = profile == (int)AudioProfile.Personalize
                 ? GetGeq().ToImmutableArray()
                 : ImmutableArray<int>.Empty,
             GeqMaximumRange = maxRange,
         };
+    }
+
+    public (bool VolumeLeveler, bool SurroundVirtualizer) GetFeatures()
+    {
+        EnsureOpen();
+        var rc = _getFeatures(out var volumeLeveler, out var surroundVirtualizer);
+        if (rc != 0)
+        {
+            throw new AudioBackendException($"ss_get_features failed (0x{rc:X8})", rc);
+        }
+
+        return (volumeLeveler != 0, surroundVirtualizer != 0);
+    }
+
+    public void SetVolumeLeveler(bool enabled)
+    {
+        EnsureOpen();
+        var rc = _setVolumeLeveler(enabled ? 1 : 0);
+        if (rc != 0)
+        {
+            throw new AudioBackendException($"ss_set_volume_leveler({enabled}) failed (0x{rc:X8})", rc);
+        }
+    }
+
+    public void SetSurroundVirtualizer(bool enabled)
+    {
+        EnsureOpen();
+        var rc = _setSurroundVirtualizer(enabled ? 1 : 0);
+        if (rc != 0)
+        {
+            throw new AudioBackendException($"ss_set_surround_virtualizer({enabled}) failed (0x{rc:X8})", rc);
+        }
     }
 
     public int[] GetGeq()
