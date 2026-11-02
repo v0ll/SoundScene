@@ -1,23 +1,20 @@
 # SoundScene
 
-A LIGHTWEIGHT profile switcher that lets you flip between profiles and settings INSTANTLY for **Dolby Access** on ASUS ROG laptops.
+A LIGHTWEIGHT Dolby Access alternative that lets you flip between profiles and settings INSTANTLY for ASUS ROG Zephyrus laptops.
 
-From a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time, while idling at a few megabytes of private working set.
+Does it all from a tray icon, a global hotkey, or a compact popup - instead of opening the Dolby app and clicking through the UI every time, while idling at only few megabytes.
 
 ---
 
 ## Why
 
-The ASUS ROG Zephyrus G14 (GA403UV) ships with Dolby Access, which sounds excellent but lacks the quality of life experience. Switching from "Movie" to "Game" means opening the app, waiting for it to load, and
-navigating. There is nothing that makes changing profiles easier.
-
-SoundScene aims to be the G-Helper of Dolby audio: small, fast, keyboard-driven, and honest.
+The ASUS ROG Zephyrus G14 ships with Dolby Access, which sounds excellent but the app lacks useful QoL enhancements. Switching from one profile to another literally means opening the app, waiting for it to load, and navigating. There is nothing that makes changing profiles less time consuming.
 
 ## Features
 
-- **Instant profile switching** - main profiles (Movie / Music / Game / Voice / Personalize / Dynamic).
+- **Instant profile switching** - with your designated macro key, main profiles (Movie / Music / Game / Voice / Personalize / Dynamic).
 - **Scenes** - save the current profile and custom EQ as a named scene, recall it with one click.
-  Stored as plain JSON in your own user profile; Dolby Access has no equivalent.
+  Stored as plain JSON in your own user profile.
 - **Macro hotkeys** - as many as you want. Each one either switches straight to a profile or
   toggles between two, with a single global key combination. The editor is available from the
   popup header and the tray menu; existing single-toggle settings are migrated automatically.
@@ -28,12 +25,11 @@ SoundScene aims to be the G-Helper of Dolby audio: small, fast, keyboard-driven,
   seconds. Idle private working set is a few MB; the popup costs tens of MB only while it is open.
 - **One process** - a second launch wakes the running instance instead of racing it for the
   same DAX profile.
-- **Start with Windows** - optional HKCU Run entry, toggled from the tray menu.
+- **Start with Windows** - OPTIONAL HKCU Run entry, toggled from the tray menu.
 - **EQ editor** - a simple 10-slider view by default, with all 20 driver bands behind an
   **Advanced** tab. Type a level in dB or drag a slider; values snap to flat near 0 dB and
-  changes are written immediately, with no Apply button. Includes Dolby's volume leveler and
-  surround virtualizer switches. The curve and switches live on Personalize, so the editor
-  activates it while open.
+  changes are written immediately. Includes Dolby's volume leveler and surround virtualizer
+  switches. The curve and switches live on Personalize, so the editor activates it while open.
 - **Backend abstraction** - a Dolby DAX backend plus an Equalizer APO fallback, so the app degrades
   gracefully instead of dying when the Dolby stack is unavailable. The APO backend is designed
   ([ADR 0003](docs/adr/0003-equalizer-apo-fallback.md)) but not implemented.
