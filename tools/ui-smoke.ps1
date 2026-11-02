@@ -50,6 +50,14 @@ public static class Uia
         return scope.FindFirst(TreeScope.Descendants, cond);
     }
 
+    public static AutomationElement Descendant(AutomationElement scope, ControlType type, string name)
+    {
+        var cond = new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, type),
+            new PropertyCondition(AutomationElement.NameProperty, name));
+        return scope.FindFirst(TreeScope.Descendants, cond);
+    }
+
     public static void Invoke(AutomationElement el)
     {
         ((InvokePattern)el.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
@@ -188,6 +196,26 @@ try {
     $removed = $remaining -notmatch $sceneName
     "scene removed : $removed"
     if (-not $removed) { $failures += "The scene survived two delete clicks" }
+
+    # The header button must reach the same editor as the tray menu.
+    $w = Show-Popup
+    [Uia]::InvokeThreaded([Uia]::Button($w, "Hotkeys"))
+    $hotkeys = $null
+    for ($i = 0; $i -lt 20 -and -not $hotkeys; $i++) {
+        Start-Sleep -Milliseconds 250
+        $hotkeys = [Uia]::Descendant([System.Windows.Automation.AutomationElement]::RootElement,
+            [System.Windows.Automation.ControlType]::Window, "Hotkeys")
+    }
+    "hotkeys dialog: $($null -ne $hotkeys)"
+    if (-not $hotkeys) {
+        $failures += "The Hotkeys button did not open the editor"
+    }
+    else {
+        $add = [Uia]::Button($hotkeys, "+ Add hotkey")
+        if (-not $add) { $failures += "The hotkey editor has no Add button" }
+        [Uia]::Invoke([Uia]::Button($hotkeys, "Cancel"))
+        Start-Sleep -Milliseconds 400
+    }
 }
 finally {
     Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
