@@ -33,11 +33,11 @@ jobs:
       - name: Build native bridge
         run: cmake --build native/build
 
-      - name: Restore
-        run: dotnet restore SoundScene.slnx
-
-      - name: Build
-        run: dotnet build SoundScene.slnx -c Release --no-restore
-
-      - name: Test
-        run: dotnet test SoundScene.slnx -c Release --no-build
+      - name: Restore, build, and test
+        run: |
+          # msvc-dev-cmd exports Platform=x64, which MSBuild applies to the
+          # solution; the solution uses the default Any CPU platform.
+          $env:Platform = "Any CPU"
+          dotnet restore SoundScene.slnx
+          dotnet build SoundScene.slnx -c Release --no-restore
+          dotnet test SoundScene.slnx -c Release --no-build
