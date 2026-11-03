@@ -115,7 +115,7 @@ public partial class App : Application
             await backend.SetGeqAsync(GraphicEqualizer.Flat()).ConfigureAwait(true);
             await backend.SetVolumeLevelerAsync(false).ConfigureAwait(true);
             await backend.SetSurroundVirtualizerAsync(false).ConfigureAwait(true);
-            await backend.SetProfileAsync(state.Profile).ConfigureAwait(true);
+            await backend.SetProfileIndexAsync(state.ProfileIndex).ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is AudioBackendException or InvalidOperationException)
         {

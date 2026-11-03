@@ -5,9 +5,9 @@ using SoundScene.Core.Audio;
 namespace SoundScene.App.ViewModels;
 
 /// <summary>
-/// One of the ten sliders in the simple equalizer view. It drives two adjacent
-/// driver bands at once, so the common case stays readable while the Advanced
-/// tab still exposes everything.
+/// One slider in the simple equalizer view. It drives two adjacent driver
+/// bands at once, so the common case stays readable while the Advanced tab
+/// still exposes everything.
 /// </summary>
 public sealed class EqGroupViewModel : ObservableObject
 {

@@ -104,6 +104,35 @@ public class SceneLibraryTests
     }
 
     [Fact]
+    public async Task Apply_UsesTheStoredDriverIndex()
+    {
+        var (library, backend, path) = Create();
+
+        try
+        {
+            // A scene written by a build where Voice sat at index 3, but the
+            // legacy enum says Movie. The index must win.
+            var scene = new Scene
+            {
+                Name = "Old scene",
+                Profile = AudioProfile.Movie,
+                ProfileIndex = (int)AudioProfile.Voice,
+                ProfileName = "Voice",
+            };
+
+            await library.ApplyAsync(scene);
+
+            var state = await backend.GetStateAsync();
+            Assert.Equal((int)AudioProfile.Voice, state.ProfileIndex);
+            Assert.Equal(AudioProfile.Voice, state.Profile);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task Remove_PersistsAcrossReload()
     {
         var (library, backend, path) = Create();

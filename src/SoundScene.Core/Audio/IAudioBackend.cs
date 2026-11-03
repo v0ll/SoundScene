@@ -14,10 +14,23 @@ public interface IAudioBackend : IAsyncDisposable
 
     Task<AudioState> GetStateAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// What this backend exposes: EQ width, range, and the profile catalog.
+    /// </summary>
+    /// <remarks>
+    /// Callers must read this instead of assuming 20 bands and six profiles.
+    /// Implementations should return a safe default rather than throwing when a
+    /// probe fails, so the UI can still open and explain the problem.
+    /// </remarks>
+    Task<AudioCapabilities> GetCapabilitiesAsync(CancellationToken cancellationToken = default);
+
     Task SetProfileAsync(AudioProfile profile, CancellationToken cancellationToken = default);
 
+    /// <summary>Selects a profile by the driver's own index.</summary>
+    Task SetProfileIndexAsync(int index, CancellationToken cancellationToken = default);
+
     /// <summary>
-    /// Reads the 20 graphic-EQ bands of the Personalize profile.
+    /// Reads the graphic-EQ bands of the Personalize profile.
     /// </summary>
     /// <remarks>
     /// EQ levels are stored per profile, and Dolby only exposes them while
@@ -27,7 +40,7 @@ public interface IAudioBackend : IAsyncDisposable
     Task<IReadOnlyList<int>> GetGeqAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Writes the 20 graphic-EQ bands. Implementations are responsible for the
+    /// Writes the graphic-EQ bands. Implementations are responsible for the
     /// profile dance: Dolby only accepts EQ writes while Personalize is active.
     /// </summary>
     Task SetGeqAsync(IReadOnlyList<int> levels, CancellationToken cancellationToken = default);

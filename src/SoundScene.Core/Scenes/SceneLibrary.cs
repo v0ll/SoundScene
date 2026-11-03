@@ -38,14 +38,21 @@ public sealed class SceneLibrary
 
         var state = await _backend.GetStateAsync(cancellationToken).ConfigureAwait(false);
 
-        var levels = state.Profile == AudioProfile.Personalize
-            ? (await _backend.GetGeqAsync(cancellationToken).ConfigureAwait(false)).ToImmutableArray()
-            : ImmutableArray<int>.Empty;
+        // Prefer the curve the backend already returned: it is present exactly
+        // when the active mode is the build's own Personalize, even if the
+        // driver calls that mode something SoundScene does not recognise.
+        var levels = !state.GeqLevels.IsDefaultOrEmpty
+            ? state.GeqLevels
+            : state.Profile == AudioProfile.Personalize
+                ? (await _backend.GetGeqAsync(cancellationToken).ConfigureAwait(false)).ToImmutableArray()
+                : ImmutableArray<int>.Empty;
 
         var scene = new Scene
         {
             Name = MakeUniqueName(name.Trim()),
             Profile = state.Profile,
+            ProfileIndex = state.ProfileIndex,
+            ProfileName = state.ProfileName,
             GeqLevels = levels,
             Ieq = state.Ieq,
         };
@@ -76,7 +83,8 @@ public sealed class SceneLibrary
             await _backend.SetGeqAsync(scene.GeqLevels, cancellationToken).ConfigureAwait(false);
         }
 
-        await _backend.SetProfileAsync(scene.Profile, cancellationToken).ConfigureAwait(false);
+        await _backend.SetProfileIndexAsync(scene.ProfileIndex ?? (int)scene.Profile, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private string MakeUniqueName(string name)

@@ -8,19 +8,28 @@ public sealed class ProfileItemViewModel : Mvvm.ObservableObject
 {
     private bool _isActive;
 
-    public ProfileItemViewModel(AudioProfile profile, Func<AudioProfile, Task> select, Action<Exception> onError)
+    public ProfileItemViewModel(
+        AudioProfileDescriptor descriptor,
+        Func<int, Task> select,
+        Action<Exception> onError)
     {
-        Profile = profile;
-        Name = profile.DisplayName();
-        Glyph = profile.Glyph();
-        Command = new Mvvm.AsyncRelayCommand(() => select(profile), onError);
+        ArgumentNullException.ThrowIfNull(descriptor);
+
+        Descriptor = descriptor;
+        Command = new Mvvm.AsyncRelayCommand(() => select(descriptor.Index), onError);
     }
 
-    public AudioProfile Profile { get; }
+    public AudioProfileDescriptor Descriptor { get; }
 
-    public string Name { get; }
+    /// <summary>The driver's real index, which is what selection uses.</summary>
+    public int ProfileIndex => Descriptor.Index;
 
-    public string Glyph { get; }
+    /// <summary>Null when the driver exposed a mode SoundScene does not know.</summary>
+    public AudioProfile? Profile => Descriptor.KnownProfile;
+
+    public string Name => Descriptor.DisplayName;
+
+    public string Glyph => Descriptor.Glyph;
 
     public ICommand Command { get; }
 

@@ -4,7 +4,7 @@ using SoundScene.Core.Audio;
 
 namespace SoundScene.App.ViewModels;
 
-/// <summary>One of Dolby's 20 driver bands.</summary>
+/// <summary>One of the driver's graphic-EQ bands.</summary>
 /// <remarks>
 /// <see cref="Value"/> is the value a hand sets: it snaps to flat near zero so
 /// 0 dB is reachable. <see cref="SetFromDriver"/> skips that, because a curve
@@ -15,19 +15,22 @@ public sealed class EqBandViewModel : ObservableObject
     private double _value;
     private int _range;
 
-    public EqBandViewModel(int index, double frequency, int range)
+    public EqBandViewModel(EqualizerBand band, int range)
     {
-        Index = index;
-        Frequency = frequency;
-        FrequencyLabel = GraphicEqualizer.FormatFrequency(frequency);
+        ArgumentNullException.ThrowIfNull(band);
+
+        Index = band.Index;
+        Frequency = band.Frequency;
+        FrequencyLabel = band.Label;
         _range = range;
     }
 
     public int Index { get; }
 
-    public double Frequency { get; }
+    /// <summary>Null when the driver's tuning XML could not be read.</summary>
+    public double? Frequency { get; }
 
-    /// <summary>Axis label, e.g. <c>1.3k</c>.</summary>
+    /// <summary>Axis label, e.g. <c>1.3k</c>, or <c>B7</c> when unlabelled.</summary>
     public string FrequencyLabel { get; }
 
     public double Minimum => -_range;

@@ -20,11 +20,15 @@ Some of the ASUS ROG Zephyrus laptops newer than 2020 ships with Dolby Access, b
 Switching from one profile to another literally means opening the app, waiting for it to load, and navigating. There is nothing that makes changing profiles less time consuming.
 
 Tested on the **ROG Zephyrus G14 GA403UV** with Windows 11 and Dolby Access 3.27. Other DAX3-based
-ROG models should work, **but have not been verified.**
+ROG models, including the Zephyrus G16, should work because the app reads the installed driver's
+band count, EQ range, and profile names instead of assuming the G14's; those models have not been
+verified on hardware yet.
 
 ## Features
 
-- **Instant profile switching** - with your designated macro key, main profiles (Movie / Music / Game / Voice / Personalize / Dynamic).
+- **Instant profile switching** - with your designated macro key or from the popup. The grid is
+  built from the profiles the installed driver exposes (Movie / Music / Game / Voice / Personalize /
+  Dynamic on the tested G14).
 - **Scenes** - save the current profile and custom EQ as a named scene, recall it with one click.
   Stored as plain JSON in your own user profile.
 - **Macro hotkeys** - as many as you want. Each one either switches straight to a profile or
@@ -39,10 +43,12 @@ ROG models should work, **but have not been verified.**
 - **One process** - a second launch wakes the running instance instead of racing it for the
   same DAX profile.
 - **Start with Windows** - OPTIONAL entry, toggled from the tray menu.
-- **EQ editor** - a simple 10-slider view by default, with all 20 driver bands behind an
-  **Advanced** tab. Type a level in dB or drag a slider; values snap to flat near 0 dB and
-  changes are written immediately. Includes Dolby's volume leveler and surround virtualizer
-  switches. The curve and switches live on Personalize, so the editor activates it while open.
+- **EQ editor** - paired sliders by default (ten on a 20-band driver), with every band the driver
+  reports behind an **Advanced** tab. Type a level in dB or drag a slider; values snap to flat near
+  0 dB and changes are written immediately. Includes Dolby's volume leveler and surround
+  virtualizer switches. The curve and switches live on Personalize, so the editor activates it
+  while open. Band count, range, and frequencies are read from the installed DAX build and its
+  tuning XML rather than hardcoded.
 
 <img width="1000" alt="Graphic equalizer" src="docs/images/eq.png" />
 
@@ -56,7 +62,7 @@ The installer is **not code-signed yet**, so Windows SmartScreen may say "Window
 PC". Verify the download against `SHA256SUMS.txt` on the release page first:
 
 ```powershell
-Get-FileHash .\SoundScene-Setup-0.2.1.exe -Algorithm SHA256
+Get-FileHash .\SoundScene-Setup-0.2.2.exe -Algorithm SHA256
 ```
 
 Then choose **More info > Run anyway**.
@@ -105,9 +111,17 @@ Movie would be a lie.
 - **Dolby Access and the ASUS Dolby Atmos driver are both required.** The driver alone provides the
   service and APOs, but not the client API SoundScene uses.
 - Tested on the G14 GA403UV with Windows 11 (build 26100). Windows 10 2004+ is supported by the
-  build and installer, but has not been tested on hardware yet.
-- The Dolby Access package family is currently hardcoded. A machine with a different Dolby/OEM
-  package will show the setup checklist even if another Dolby app is installed.
+  build and installer, but has not been tested on hardware yet. The Zephyrus G16 and other DAX3
+  models are supported in code but unverified.
+- Dolby Access is found by publisher and the presence of `DAXRPCClient.dll`, not by one hardcoded
+  package family, so OEM repackages and newer Store versions should be located. A DAX build that
+  changes the native C ABI could still break the bridge.
+- The EQ width and range come from the driver. Band frequencies come from the installed `dax3_*`
+  tuning XML; when that file is missing, bands are shown as `B1`, `B2`, and so on instead of Hz.
+- Some DAX builds answer zero device modes to unpackaged callers. SoundScene then falls back to the
+  six known profiles in Dolby's historical order.
+- Profiles with names SoundScene does not recognise are shown and selectable, but scenes and
+  hotkeys still target the six known profiles.
 - The installer is not code-signed yet, so SmartScreen may warn. Verify `SHA256SUMS.txt`.
 - There is no auto-update yet; check the releases page for new versions.
 - SoundScene changes the active Dolby profile and Personalize EQ state as part of normal use. The

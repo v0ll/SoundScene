@@ -16,7 +16,9 @@ internal sealed class DaxBridge : IDisposable
 {
     private const string BridgeDllName = "SoundScene.DaxBridge.dll";
     private const int ReportSize = 16 * 1024;
-    private const int MaxBands = 20;
+
+    // Generous ceiling; the real width comes from ss_get_capabilities.
+    private const int MaxBands = 64;
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int OpenFn(IntPtr cacheDir, IntPtr report, uint reportLength);
@@ -45,6 +47,12 @@ internal sealed class DaxBridge : IDisposable
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int GetFeaturesFn(out int volumeLeveler, out int surroundVirtualizer);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int GetCapabilitiesFn(out int bandCount, out int maxRange, out int profileCount);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int GetNameFn(int index, IntPtr buffer, uint length);
+
     private readonly IntPtr _module;
     private readonly OpenFn _open;
     private readonly ActionFn _close;
@@ -55,6 +63,8 @@ internal sealed class DaxBridge : IDisposable
     private readonly SetGeqFn _setGeq;
     private readonly GetStateFn _getState;
     private readonly GetFeaturesFn _getFeatures;
+    private readonly GetCapabilitiesFn _getCapabilities;
+    private readonly GetNameFn _getProfileName;
     private readonly SetI32Fn _setVolumeLeveler;
     private readonly SetI32Fn _setSurroundVirtualizer;
     private bool _opened;
@@ -79,6 +89,8 @@ internal sealed class DaxBridge : IDisposable
         _setGeq = Bind<SetGeqFn>("ss_set_geq");
         _getState = Bind<GetStateFn>("ss_get_state");
         _getFeatures = Bind<GetFeaturesFn>("ss_get_features");
+        _getCapabilities = Bind<GetCapabilitiesFn>("ss_get_capabilities");
+        _getProfileName = Bind<GetNameFn>("ss_get_profile_name");
         _setVolumeLeveler = Bind<SetI32Fn>("ss_set_volume_leveler");
         _setSurroundVirtualizer = Bind<SetI32Fn>("ss_set_surround_virtualizer");
     }
@@ -128,7 +140,7 @@ internal sealed class DaxBridge : IDisposable
         }
     }
 
-    public AudioState GetState()
+    public AudioState GetState(AudioCapabilities? capabilities = null)
     {
         EnsureOpen();
         var rc = _getState(out var profile, out var subProfile, out var enabled, out var ieq, out var maxRange);
@@ -138,16 +150,21 @@ internal sealed class DaxBridge : IDisposable
         }
 
         var features = GetFeatures();
+        var caps = capabilities ?? AudioCapabilities.Unknown;
+        var descriptor = caps.ProfileAt(profile);
+        var known = descriptor?.KnownProfile ?? (AudioProfile)profile;
 
         return new AudioState
         {
-            Profile = (AudioProfile)profile,
+            Profile = known,
+            ProfileIndex = profile,
+            ProfileName = descriptor?.DisplayName ?? known.DisplayName(),
             SubProfile = subProfile,
             DolbyEnabled = enabled != 0,
             Ieq = ieq,
             VolumeLevelerEnabled = features.VolumeLeveler,
             SurroundVirtualizerEnabled = features.SurroundVirtualizer,
-            GeqLevels = profile == (int)AudioProfile.Personalize
+            GeqLevels = profile == caps.PersonalizeIndex
                 ? GetGeq().ToImmutableArray()
                 : ImmutableArray<int>.Empty,
             GeqMaximumRange = maxRange,
@@ -164,6 +181,51 @@ internal sealed class DaxBridge : IDisposable
         }
 
         return (volumeLeveler != 0, surroundVirtualizer != 0);
+    }
+
+    /// <summary>
+    /// Asks the installed DAX build for its real EQ width and device modes.
+    /// Names that cannot be read are kept as empty slots so indices stay aligned.
+    /// </summary>
+    public (int BandCount, int MaxRange, IReadOnlyList<string> ProfileNames) GetCapabilities()
+    {
+        EnsureOpen();
+
+        var rc = _getCapabilities(out var bandCount, out var maxRange, out var profileCount);
+        if (rc != 0)
+        {
+            throw new AudioBackendException($"ss_get_capabilities failed (0x{rc:X8})", rc);
+        }
+
+        var names = new List<string>(Math.Max(profileCount, 0));
+        for (var index = 0; index < profileCount; index++)
+        {
+            names.Add(ReadProfileName(index));
+        }
+
+        return (
+            bandCount > 0 ? bandCount : GraphicEqualizer.BandCount,
+            maxRange > 0 ? maxRange : GraphicEqualizer.DefaultRange,
+            names);
+    }
+
+    private string ReadProfileName(int index)
+    {
+        const int Size = 256;
+        var buffer = Marshal.AllocHGlobal(Size);
+        try
+        {
+            if (_getProfileName(index, buffer, Size) != 0)
+            {
+                return string.Empty;
+            }
+
+            return Marshal.PtrToStringUTF8(buffer) ?? string.Empty;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
     }
 
     public void SetVolumeLeveler(bool enabled)

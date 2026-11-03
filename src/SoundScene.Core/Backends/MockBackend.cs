@@ -10,14 +10,41 @@ namespace SoundScene.Core.Backends;
 public sealed class MockBackend : IAudioBackend
 {
     private readonly object _sync = new();
+    private readonly AudioCapabilities _capabilities;
     private AudioState _state = new()
     {
         Profile = AudioProfile.Movie,
+        ProfileIndex = (int)AudioProfile.Movie,
+        ProfileName = AudioProfile.Movie.DisplayName(),
         DolbyEnabled = true,
         Ieq = 0,
-        GeqLevels = ImmutableArray.Create(new int[20]),
-        GeqMaximumRange = 192,
+        GeqLevels = ImmutableArray.Create(new int[GraphicEqualizer.BandCount]),
+        GeqMaximumRange = GraphicEqualizer.DefaultRange,
     };
+
+    /// <summary>Creates a 20-band mock, or one shaped like another DAX build.</summary>
+    public MockBackend(
+        int bandCount = GraphicEqualizer.BandCount,
+        int geqMaximumRange = GraphicEqualizer.DefaultRange)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bandCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(geqMaximumRange);
+
+        _capabilities = new AudioCapabilities
+        {
+            BandCount = bandCount,
+            GeqMaximumRange = geqMaximumRange,
+            BandFrequencies = bandCount == GraphicEqualizer.BandCount
+                ? GraphicEqualizer.Frequencies
+                : null,
+        };
+
+        _state = _state with
+        {
+            GeqLevels = ImmutableArray.Create(new int[bandCount]),
+            GeqMaximumRange = geqMaximumRange,
+        };
+    }
 
     public string Name => "Mock";
 
@@ -25,6 +52,9 @@ public sealed class MockBackend : IAudioBackend
 
     /// <summary>Records every profile that was ever written, for assertions.</summary>
     public List<AudioProfile> ProfileHistory { get; } = [];
+
+    public Task<AudioCapabilities> GetCapabilitiesAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(_capabilities);
 
     public Task<AudioState> GetStateAsync(CancellationToken cancellationToken = default)
     {
@@ -47,11 +77,21 @@ public sealed class MockBackend : IAudioBackend
         }
     }
 
-    public Task SetProfileAsync(AudioProfile profile, CancellationToken cancellationToken = default)
+    public Task SetProfileAsync(AudioProfile profile, CancellationToken cancellationToken = default) =>
+        SetProfileIndexAsync((int)profile, cancellationToken);
+
+    public Task SetProfileIndexAsync(int index, CancellationToken cancellationToken = default)
     {
+        var profile = (AudioProfile)index;
+
         lock (_sync)
         {
-            _state = _state with { Profile = profile };
+            _state = _state with
+            {
+                Profile = profile,
+                ProfileIndex = index,
+                ProfileName = profile.DisplayName(),
+            };
             ProfileHistory.Add(profile);
         }
 
@@ -72,12 +112,22 @@ public sealed class MockBackend : IAudioBackend
 
             // Mirror the real backend: the write is attributed to Personalize.
             var previous = _state.Profile;
-            _state = _state with { Profile = AudioProfile.Personalize };
+            _state = _state with
+            {
+                Profile = AudioProfile.Personalize,
+                ProfileIndex = (int)AudioProfile.Personalize,
+                ProfileName = AudioProfile.Personalize.DisplayName(),
+            };
             ProfileHistory.Add(AudioProfile.Personalize);
 
             _state = _state with { GeqLevels = levels.ToImmutableArray() };
 
-            _state = _state with { Profile = previous };
+            _state = _state with
+            {
+                Profile = previous,
+                ProfileIndex = (int)previous,
+                ProfileName = previous.DisplayName(),
+            };
             ProfileHistory.Add(previous);
         }
 
@@ -112,12 +162,13 @@ public sealed class MockBackend : IAudioBackend
         {
             var text = $"""
                 backend        : Mock (in-memory, no audio hardware)
-                profile        : {_state.Profile.DisplayName()} ({_state.Profile})
+                profile        : {_state.ProfileName ?? _state.Profile.DisplayName()} (index {_state.ProfileIndex})
                 sub-profile    : {_state.SubProfile}
                 dolby enabled  : {_state.DolbyEnabled}
                 ieq            : {_state.Ieq}
                 volume leveler : {_state.VolumeLevelerEnabled}
                 surround       : {_state.SurroundVirtualizerEnabled}
+                band count     : {_state.GeqLevels.Length}
                 geq range      : {_state.GeqMaximumRange}
                 geq bands      : {string.Join(",", _state.GeqLevels)}
                 """;

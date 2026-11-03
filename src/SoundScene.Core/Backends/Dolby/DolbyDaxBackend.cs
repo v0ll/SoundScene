@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using SoundScene.Core.Audio;
 
 namespace SoundScene.Core.Backends.Dolby;
@@ -14,19 +15,20 @@ public sealed class DolbyDaxBackend : IAudioBackend
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private DaxBridge? _bridge;
+    private AudioCapabilities _capabilities = AudioCapabilities.Unknown;
     private bool _disposed;
 
     public string Name => "Dolby DAX";
 
     public bool IsAvailable { get; private set; }
 
-    public async Task<AudioState> GetStateAsync(CancellationToken cancellationToken = default)
+    public async Task<AudioCapabilities> GetCapabilitiesAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             EnsureOpen();
-            return _bridge!.GetState();
+            return _capabilities;
         }
         finally
         {
@@ -34,13 +36,30 @@ public sealed class DolbyDaxBackend : IAudioBackend
         }
     }
 
-    public async Task SetProfileAsync(AudioProfile profile, CancellationToken cancellationToken = default)
+    public async Task<AudioState> GetStateAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             EnsureOpen();
-            _bridge!.SetProfile((int)profile);
+            return _bridge!.GetState(_capabilities);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public Task SetProfileAsync(AudioProfile profile, CancellationToken cancellationToken = default) =>
+        SetProfileIndexAsync(_capabilities.IndexOf(profile) ?? (int)profile, cancellationToken);
+
+    public async Task SetProfileIndexAsync(int index, CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            EnsureOpen();
+            _bridge!.SetProfile(index);
         }
         finally
         {
@@ -115,14 +134,15 @@ public sealed class DolbyDaxBackend : IAudioBackend
         {
             EnsureOpen();
 
-            var previous = (AudioProfile)_bridge!.GetProfile();
-            var switched = previous != AudioProfile.Personalize;
+            var previous = _bridge!.GetProfile();
+            var personalize = _capabilities.PersonalizeIndex;
+            var switched = previous != personalize;
 
             try
             {
                 if (switched)
                 {
-                    _bridge.SetProfile((int)AudioProfile.Personalize);
+                    _bridge.SetProfile(personalize);
                 }
 
                 return work(_bridge);
@@ -131,7 +151,7 @@ public sealed class DolbyDaxBackend : IAudioBackend
             {
                 if (switched)
                 {
-                    _bridge.SetProfile((int)previous);
+                    _bridge.SetProfile(previous);
                 }
             }
         }
@@ -148,7 +168,31 @@ public sealed class DolbyDaxBackend : IAudioBackend
         try
         {
             EnsureOpen();
-            return _bridge!.DumpState();
+
+            var capabilities = string.Join(
+                Environment.NewLine,
+                $"band count     : {_capabilities.BandCount}",
+                $"geq range      : {_capabilities.GeqMaximumRange}",
+                $"personalize    : index {_capabilities.PersonalizeIndex}",
+                "profiles       :",
+                string.Join(
+                    Environment.NewLine,
+                    _capabilities.Profiles.Select(profile =>
+                        $"  [{profile.Index}] {profile.DisplayName}" +
+                        (profile.KnownProfile is null ? " (unmapped)" : string.Empty))),
+                $"band frequencies: {(_capabilities.BandFrequencies is null ? "<unknown>" : string.Join(", ", _capabilities.BandFrequencies.Select(value => value.ToString("0", CultureInfo.InvariantCulture))))}",
+                $"tuning source  : {_capabilities.BandFrequencySource ?? "<not found>"}");
+
+            return string.Join(
+                Environment.NewLine,
+                "Packages:",
+                DaxPackages.Describe(),
+                string.Empty,
+                "Capabilities:",
+                capabilities,
+                string.Empty,
+                "Session:",
+                _bridge!.DumpState());
         }
         finally
         {
@@ -175,6 +219,7 @@ public sealed class DolbyDaxBackend : IAudioBackend
         try
         {
             bridge.Open(cache);
+            _capabilities = ReadCapabilities(bridge);
         }
         catch
         {
@@ -184,6 +229,32 @@ public sealed class DolbyDaxBackend : IAudioBackend
 
         _bridge = bridge;
         IsAvailable = true;
+    }
+
+    /// <summary>
+    /// Probes the session for its real width and profile list. A failed probe
+    /// is not fatal: the defaults keep the UI usable and diagnostics show why.
+    /// </summary>
+    private static AudioCapabilities ReadCapabilities(DaxBridge bridge)
+    {
+        try
+        {
+            var (bandCount, maxRange, names) = bridge.GetCapabilities();
+            var tuning = DaxTuning.TryRead(bandCount);
+
+            return new AudioCapabilities
+            {
+                BandCount = bandCount,
+                GeqMaximumRange = maxRange,
+                Profiles = AudioProfileCatalog.FromDriverNames(names),
+                BandFrequencies = tuning?.Frequencies,
+                BandFrequencySource = tuning?.Source,
+            };
+        }
+        catch (AudioBackendException)
+        {
+            return AudioCapabilities.Unknown;
+        }
     }
 
     public async ValueTask DisposeAsync()

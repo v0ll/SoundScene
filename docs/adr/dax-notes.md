@@ -28,7 +28,7 @@ Properties:
 
 - `ActiveProfile`, `ActiveSubProfile`
 - `DolbyEnable`
-- `GEQLevels` (20 bands)
+- `GEQLevels` (20 bands on the tested G14; the array length is the real width)
 - `IEQ`
 - `SurroundVirtualizerEnable` / `SurroundVirtualizerValue`
 - `DialogEnhancerEnable` / `DialogEnhancerValue`
@@ -41,6 +41,8 @@ Methods:
 - `GetHotkey`, `SetHotkey`
 - `DaxEndpoints`, plus endpoint query APIs (`GetEndpointData`, ...)
 - `GetGEQMaximumRange()`
+- `get_GEQLevels(width, values)` and `get_DeviceModeCount` / `GetDeviceModeName`, used at startup to
+  discover the band count and profile catalog instead of assuming the G14's
 
 ## 3. Open questions
 

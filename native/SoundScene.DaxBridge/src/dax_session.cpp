@@ -4,6 +4,7 @@
 #include "diag.h"
 
 #include <objbase.h>
+#include <cstring>
 #include <cwchar>
 #include <vector>
 
@@ -451,6 +452,86 @@ SS_API ss_result ss_set_surround_virtualizer(int32_t enabled)
     }
 
     return static_cast<ss_result>(g_session.dax->put_SurroundVirtualizerEnable(enabled));
+}
+
+SS_API ss_result ss_get_capabilities(int32_t* bandCount,
+                                     int32_t* geqMaximumRange,
+                                     int32_t* profileCount)
+{
+    if (g_session.dax == nullptr)
+    {
+        return -1;
+    }
+
+    IDolbyDAX* dax = g_session.dax;
+
+    if (bandCount != nullptr)
+    {
+        UINT32 size = 0;
+        INT32* raw = nullptr;
+        const HRESULT hr = dax->get_GEQLevels(&size, &raw);
+        if (FAILED(hr))
+        {
+            return static_cast<ss_result>(hr);
+        }
+
+        if (raw != nullptr)
+        {
+            CoTaskMemFree(raw);
+        }
+
+        *bandCount = static_cast<int32_t>(size);
+    }
+
+    if (geqMaximumRange != nullptr)
+    {
+        const HRESULT hr = dax->GetGEQMaximumRange(geqMaximumRange);
+        if (FAILED(hr))
+        {
+            return static_cast<ss_result>(hr);
+        }
+    }
+
+    if (profileCount != nullptr)
+    {
+        const HRESULT hr = dax->get_DeviceModeCount(profileCount);
+        if (FAILED(hr))
+        {
+            return static_cast<ss_result>(hr);
+        }
+    }
+
+    return 0;
+}
+
+SS_API ss_result ss_get_profile_name(int32_t index, char* buf, uint32_t len)
+{
+    if (buf == nullptr || len == 0)
+    {
+        return -1;
+    }
+
+    buf[0] = '\0';
+
+    if (g_session.dax == nullptr)
+    {
+        return -1;
+    }
+
+    HSTRING name = nullptr;
+    const HRESULT hr = g_session.dax->GetDeviceModeName(index, &name);
+    if (FAILED(hr))
+    {
+        return static_cast<ss_result>(hr);
+    }
+
+    const std::string text = TakeHString(name);
+    const size_t copy = (text.size() < static_cast<size_t>(len) - 1)
+        ? text.size()
+        : static_cast<size_t>(len) - 1;
+    memcpy(buf, text.c_str(), copy);
+    buf[copy] = '\0';
+    return 0;
 }
 
 SS_API ss_result ss_get_state(int32_t* profile,

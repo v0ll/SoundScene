@@ -1,7 +1,4 @@
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
-using Windows.ApplicationModel;
-using Windows.Management.Deployment;
 
 namespace SoundScene.Core.Backends.Dolby;
 
@@ -47,9 +44,6 @@ public sealed record DaxRequirements(IReadOnlyList<DaxRequirement> Items)
 /// </remarks>
 public static class DaxRequirementChecker
 {
-    private const string DolbyFamilyName = "DolbyLaboratories.DolbyAccess_rz1tebttyb220";
-    private const string VcLibsFamilyName = "Microsoft.VCLibs.140.00_8wekyb3d8bbwe";
-    private const string ServiceKey = @"SYSTEM\CurrentControlSet\Services\DolbyDAXAPI";
     private const string BridgeDllName = "SoundScene.DaxBridge.dll";
 
     public static DaxRequirements Check()
@@ -70,30 +64,33 @@ public static class DaxRequirementChecker
             x64,
             x64 ? "x64" : $"{RuntimeInformation.ProcessArchitecture} is not supported."));
 
-        var packages = FindPackages();
-        var dolby = packages.FirstOrDefault(
-            package => string.Equals(package.Id.FamilyName, DolbyFamilyName, StringComparison.OrdinalIgnoreCase));
+        var dolby = DaxPackages.FindDolbyAccess();
+        var dolbyOk = dolby is { HasClientDll: true };
         items.Add(new DaxRequirement(
             "Dolby Access",
-            dolby is not null,
+            dolbyOk,
             dolby is null
                 ? "Not installed. Get it free from the Microsoft Store."
-                : $"Version {dolby.Id.Version}"));
+                : dolby.HasClientDll
+                    ? $"Version {dolby.Version} ({dolby.FamilyName})"
+                    : $"Version {dolby.Version} is missing {DaxPackages.ClientDllName}."));
 
-        var vclibs = packages.Any(
-            package => string.Equals(package.Id.FamilyName, VcLibsFamilyName, StringComparison.OrdinalIgnoreCase));
+        var vclibs = DaxPackages.FindVcLibsDirectory() is not null;
         items.Add(new DaxRequirement(
             "Microsoft VCLibs runtime",
             vclibs,
             vclibs ? "Present" : "Installed with Dolby Access."));
 
-        var serviceOk = IsDaxServicePresent();
+        var service = DaxPackages.FindService();
+        var serviceOk = service is not null;
         items.Add(new DaxRequirement(
             "Dolby DAX service",
             serviceOk,
-            serviceOk
-                ? "DolbyDAXAPI is installed."
-                : "Install the ASUS Dolby Atmos driver for this laptop."));
+            service is null
+                ? "Install the ASUS Dolby Atmos driver for this laptop."
+                : service.Version is null
+                    ? "DolbyDAXAPI is installed."
+                    : $"DolbyDAXAPI {service.Version} is installed."));
 
         var bridgePath = Path.Combine(AppContext.BaseDirectory, BridgeDllName);
         var bridgeOk = File.Exists(bridgePath);
@@ -103,38 +100,5 @@ public static class DaxRequirementChecker
             bridgeOk ? BridgeDllName : "Missing from the application folder. Reinstall SoundScene."));
 
         return new DaxRequirements(items);
-    }
-
-    private static IReadOnlyList<Package> FindPackages()
-    {
-        try
-        {
-            return [.. new PackageManager().FindPackagesForUser(string.Empty)];
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException
-                                       or InvalidOperationException
-                                       or COMException)
-        {
-            return [];
-        }
-    }
-
-    private static bool IsDaxServicePresent()
-    {
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey(ServiceKey);
-            if (key is null)
-            {
-                return false;
-            }
-
-            // Start == 4 means disabled.
-            return key.GetValue("Start") is not int start || start != 4;
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
-        {
-            return false;
-        }
     }
 }

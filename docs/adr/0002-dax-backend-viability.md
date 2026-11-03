@@ -71,7 +71,7 @@ Reads, all `S_OK`:
 - `IEQ` = 3
 - `GetAPIStatus` = 1
 - `GetGEQMaximumRange` = 192
-- `GEQLevels` = 20 bands
+- `GEQLevels` = 20 bands (this machine; SoundScene reads the real width at runtime)
 - `EndpointCount` = 2, both `Headphones (QCY MeloBuds Pro)`
 - `DaxEndpoints` = `{092DF914-4E1D-4C69-8105-2E4850C58864}`
 

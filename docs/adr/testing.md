@@ -15,6 +15,7 @@ as physically possible so that almost nothing is left untested.
 | `EqualizerApoBackend` (config file generation) | unit, against golden files | yes |
 | `DolbyDaxBackend` | integration, manual only | no |
 | Native bridge (C++/WinRT) | smoke console, manual only | no |
+| WPF shell (popup, EQ tabs, dialogs) | UI Automation, manual only | no |
 
 ## Rules
 
@@ -39,12 +40,15 @@ dotnet test SoundScene.slnx
 Run these by hand on the G14 after any change to the native bridge, in this order:
 
 1. Read `ActiveProfile` without modifying anything. Does it match Dolby Access?
-2. Read all 20 `GEQLevels`. Do they match what the Dolby UI shows?
+2. Read every `GEQLevels` band. The G14 reports 20; use whatever count the bridge reports on the
+   machine under test. Do they match what the Dolby UI shows?
 3. Set one GEQ band to a new value. Confirm the change appears in Dolby Access.
 4. Restore the original band value.
 5. Switch `ActiveProfile`. Confirm the audible change.
 6. Restart Dolby Access. Is the profile still what we set?
 7. Reboot. Is it still what we set?
+8. Run `tools\ui-smoke.ps1`. It opens the Advanced tab and asserts one slider per driver band, so a
+   hardcoded 20 would fail on a different model.
 
 Step 7 is the one that decides whether scenes need an explicit "reapply on startup" mechanism.
 

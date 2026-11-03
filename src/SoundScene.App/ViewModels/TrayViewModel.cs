@@ -17,7 +17,8 @@ public sealed class TrayViewModel : ObservableObject
     private bool _isAvailable = true;
     private bool _needsSetup;
     private string _requirementSummary = string.Empty;
-    private AudioProfile _currentProfile = AudioProfile.Movie;
+    private int _currentProfile;
+    private AudioCapabilities _capabilities = AudioCapabilities.Unknown;
 
     public TrayViewModel(
         IAudioBackend backend,
@@ -31,15 +32,14 @@ public sealed class TrayViewModel : ObservableObject
         _scenes = scenes;
         _askForSceneName = askForSceneName;
 
-        Profiles = new ObservableCollection<ProfileItemViewModel>(
-            Enum.GetValues<AudioProfile>()
-                .Select(profile => new ProfileItemViewModel(profile, SelectProfileAsync, ReportError)));
+        Profiles = [];
+        BuildProfiles(AudioProfileCatalog.DefaultProfiles);
 
         CaptureSceneCommand = new AsyncRelayCommand(CaptureSceneAsync, ReportError);
         ReloadScenes();
     }
 
-    public ObservableCollection<ProfileItemViewModel> Profiles { get; }
+    public ObservableCollection<ProfileItemViewModel> Profiles { get; } = [];
 
     public ObservableCollection<SceneItemViewModel> Scenes { get; } = [];
 
@@ -108,24 +108,47 @@ public sealed class TrayViewModel : ObservableObject
     {
         try
         {
+            var capabilities = await _backend.GetCapabilitiesAsync().ConfigureAwait(true);
+            ApplyCapabilities(capabilities);
+
             var state = await _backend.GetStateAsync().ConfigureAwait(true);
 
-            _currentProfile = state.Profile;
+            _currentProfile = state.ProfileIndex;
 
             foreach (var item in Profiles)
             {
-                item.IsActive = item.Profile == state.Profile;
+                item.IsActive = item.ProfileIndex == state.ProfileIndex;
             }
 
             IsAvailable = true;
             NeedsSetup = false;
             Status = state.DolbyEnabled
-                ? $"Dolby on \u00B7 {state.Profile.DisplayName()}"
+                ? $"Dolby on \u00B7 {state.ProfileName ?? state.Profile.DisplayName()}"
                 : "Dolby processing is off";
         }
         catch (Exception ex)
         {
             ReportError(ex);
+        }
+    }
+
+    private void ApplyCapabilities(AudioCapabilities capabilities)
+    {
+        _capabilities = capabilities;
+
+        if (!Profiles.Select(item => item.Descriptor).SequenceEqual(capabilities.Profiles))
+        {
+            BuildProfiles(capabilities.Profiles);
+        }
+    }
+
+    private void BuildProfiles(IReadOnlyList<AudioProfileDescriptor> descriptors)
+    {
+        Profiles.Clear();
+
+        foreach (var descriptor in descriptors)
+        {
+            Profiles.Add(new ProfileItemViewModel(descriptor, SelectProfileAsync, ReportError));
         }
     }
 
@@ -140,15 +163,17 @@ public sealed class TrayViewModel : ObservableObject
         }
     }
 
-    private async Task SelectProfileAsync(AudioProfile profile)
+    private async Task SelectProfileAsync(int index)
     {
-        await _backend.SetProfileAsync(profile).ConfigureAwait(true);
+        await _backend.SetProfileIndexAsync(index).ConfigureAwait(true);
         await RefreshAsync().ConfigureAwait(true);
     }
 
     private async Task CaptureSceneAsync()
     {
-        var suggested = _currentProfile.DisplayName();
+        var suggested = _capabilities.ProfileAt(_currentProfile)?.DisplayName
+                        ?? (_capabilities.Profiles.Count > 0 ? _capabilities.Profiles[0].DisplayName : null)
+                        ?? "Profile";
         var name = _askForSceneName is null ? suggested : _askForSceneName(suggested);
 
         if (string.IsNullOrWhiteSpace(name))

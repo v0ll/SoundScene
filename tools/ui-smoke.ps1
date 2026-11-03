@@ -58,6 +58,25 @@ public static class Uia
         return scope.FindFirst(TreeScope.Descendants, cond);
     }
 
+    public static AutomationElement TabItem(AutomationElement scope, string name)
+    {
+        var cond = new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem),
+            new PropertyCondition(AutomationElement.NameProperty, name));
+        return scope.FindFirst(TreeScope.Descendants, cond);
+    }
+
+    public static void Select(AutomationElement el)
+    {
+        ((SelectionItemPattern)el.GetCurrentPattern(SelectionItemPattern.Pattern)).Select();
+    }
+
+    public static int Count(AutomationElement scope, ControlType type)
+    {
+        var cond = new PropertyCondition(AutomationElement.ControlTypeProperty, type);
+        return scope.FindAll(TreeScope.Descendants, cond).Count;
+    }
+
     public static void Invoke(AutomationElement el)
     {
         ((InvokePattern)el.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
@@ -112,15 +131,37 @@ function Get-Profile {
     return -1
 }
 
+function Get-BandCount {
+    # The curve Dolby persisted is the only band count this script can read
+    # without opening the DAX session the app already owns.
+    $xml = Get-Content $runtimeXml -Raw
+    if ($xml -match 'graphic-equalizer-bands"\s+value="([^"]+)"') {
+        return ($Matches[1].Split(',')).Count
+    }
+    return 20
+}
+
 function Show-Popup {
-    # A second launch is the app's own "show the popup" signal.
-    Start-Process $Exe | Out-Null
-    for ($i = 0; $i -lt 20; $i++) {
-        Start-Sleep -Milliseconds 250
-        $w = [Uia]::Window("SoundScene")
-        if ($w) { return $w }
+    # A second launch is the app's own "show the popup" signal. Retry because a
+    # secondary instance can exit before the running one processes the request.
+    for ($attempt = 0; $attempt -lt 3; $attempt++) {
+        Start-Process $Exe | Out-Null
+        for ($i = 0; $i -lt 20; $i++) {
+            Start-Sleep -Milliseconds 250
+            $w = [Uia]::Window("SoundScene")
+            if ($w) { return $w }
+        }
     }
     throw "The popup did not appear."
+}
+
+function Wait-Profile([int]$expected) {
+    # DAX flushes Runtime.xml asynchronously, so poll instead of reading once.
+    for ($i = 0; $i -lt 12; $i++) {
+        if ((Get-Profile) -eq $expected) { return $true }
+        Start-Sleep -Milliseconds 250
+    }
+    return $false
 }
 
 function Click-Profile([string]$name) {
@@ -139,14 +180,14 @@ try {
     "start profile : $start"
 
     Click-Profile "Game"
-    $game = Get-Profile
-    "after Game    : $game"
-    if ($game -ne 2) { $failures += "Game did not activate (profile $game)" }
+    $gameOk = Wait-Profile 2
+    "after Game    : $(Get-Profile)"
+    if (-not $gameOk) { $failures += "Game did not activate (profile $(Get-Profile))" }
 
     Click-Profile "Movie"
-    $movie = Get-Profile
-    "after Movie   : $movie"
-    if ($movie -ne 0) { $failures += "Movie did not activate (profile $movie)" }
+    $movieOk = Wait-Profile 0
+    "after Movie   : $(Get-Profile)"
+    if (-not $movieOk) { $failures += "Movie did not activate (profile $(Get-Profile))" }
 
     $w = Show-Popup
     [Uia]::InvokeThreaded([Uia]::Button($w, "+ Save current"))
@@ -168,15 +209,21 @@ try {
     "scene saved   : $saved"
     if (-not $saved) { $failures += "The scene was not written to disk" }
 
+    $savedScene = (Get-Content $sceneFile -Raw | ConvertFrom-Json).Scenes |
+        Where-Object { $_.Name -eq $sceneName }
+    "scene profile : $($savedScene.Profile) index=$($savedScene.ProfileIndex)"
+    if ($savedScene.Profile -ne "Movie" -or $savedScene.ProfileIndex -ne 0) {
+        $failures += "The scene recorded $($savedScene.Profile) index $($savedScene.ProfileIndex) instead of Movie 0"
+    }
+
     $w = Show-Popup
     $tile = [Uia]::Button($w, $sceneName)
     "scene tile    : $($null -ne $tile)"
     if ($tile) {
         [Uia]::Invoke($tile)
-        Start-Sleep -Milliseconds 1200
-        $applied = Get-Profile
-        "after apply   : $applied"
-        if ($applied -ne $movie) { $failures += "Applying the scene did not restore profile $movie" }
+        $appliedOk = Wait-Profile 0
+        "after apply   : $(Get-Profile)"
+        if (-not $appliedOk) { $failures += "Applying the scene did not restore profile 0" }
     }
     else {
         $failures += "The scene tile never appeared"
@@ -216,6 +263,46 @@ try {
         [Uia]::Invoke([Uia]::Button($hotkeys, "Cancel"))
         Start-Sleep -Milliseconds 400
     }
+
+    # The EQ window must build itself from what the driver reports. Selecting
+    # the Advanced tab materialises one slider per real band, so the count is a
+    # direct check that 20 is not baked into the layout.
+    $w = Show-Popup
+    [Uia]::InvokeThreaded([Uia]::Button($w, "EQ"))
+
+    # An owned dialog is merged into the popup's automation subtree rather than
+    # appearing as a desktop root child.
+    $eq = $null
+    for ($i = 0; $i -lt 20 -and -not $eq; $i++) {
+        Start-Sleep -Milliseconds 250
+        $eq = [Uia]::Descendant($w, [System.Windows.Automation.ControlType]::Window, "Equalizer")
+    }
+    "eq window     : $($null -ne $eq)"
+    if (-not $eq) {
+        $failures += "The EQ button did not open the equalizer"
+    }
+    else {
+        $advanced = [Uia]::TabItem($eq, "Advanced")
+        if (-not $advanced) {
+            $failures += "The equalizer has no Advanced tab"
+        }
+        else {
+            [Uia]::Select($advanced)
+            Start-Sleep -Milliseconds 700
+            $sliders = [Uia]::Count($eq, [System.Windows.Automation.ControlType]::Slider)
+            $expected = Get-BandCount
+            "eq bands      : $sliders (driver $expected)"
+            if ($sliders -ne $expected) {
+                $failures += "The Advanced tab built $sliders sliders for $expected driver bands"
+            }
+        }
+
+        [Uia]::Invoke([Uia]::Button($eq, "Close"))
+        Start-Sleep -Milliseconds 500
+    }
+
+    # Opening the equalizer switches Dolby to Personalize, so put it back.
+    Click-Profile "Movie"
 }
 finally {
     Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue

@@ -10,6 +10,12 @@ public sealed record AudioState
 {
     public required AudioProfile Profile { get; init; }
 
+    /// <summary>The driver's real profile index, which is what writes use.</summary>
+    public int ProfileIndex { get; init; }
+
+    /// <summary>The driver's own label for <see cref="ProfileIndex"/>.</summary>
+    public string? ProfileName { get; init; }
+
     public int SubProfile { get; init; }
 
     public bool DolbyEnabled { get; init; }
@@ -28,7 +34,7 @@ public sealed record AudioState
     public bool SurroundVirtualizerEnabled { get; init; }
 
     /// <summary>
-    /// The 20 graphic-EQ bands, when they are meaningful for the active profile.
+    /// The graphic-EQ bands, when they are meaningful for the active profile.
     /// </summary>
     /// <remarks>
     /// EQ levels are per profile. This is only populated when
@@ -40,5 +46,10 @@ public sealed record AudioState
     /// <summary>Reported by the driver; 192 on this machine.</summary>
     public int GeqMaximumRange { get; init; }
 
-    public static AudioState Unknown { get; } = new() { Profile = AudioProfile.Movie };
+    public static AudioState Unknown { get; } = new()
+    {
+        Profile = AudioProfile.Movie,
+        ProfileIndex = (int)AudioProfile.Movie,
+        ProfileName = AudioProfile.Movie.DisplayName(),
+    };
 }

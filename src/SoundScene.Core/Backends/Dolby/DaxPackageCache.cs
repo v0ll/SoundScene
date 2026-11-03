@@ -1,5 +1,4 @@
 using SoundScene.Core.Storage;
-using Windows.Management.Deployment;
 
 namespace SoundScene.Core.Backends.Dolby;
 
@@ -17,20 +16,22 @@ namespace SoundScene.Core.Backends.Dolby;
 /// </remarks>
 internal static class DaxPackageCache
 {
-    private const string DaxFamilyName = "DolbyLaboratories.DolbyAccess_rz1tebttyb220";
-    private const string VcLibsFamilyName = "Microsoft.VCLibs.140.00_8wekyb3d8bbwe";
-    private const string DaxClientDllName = "DAXRPCClient.dll";
-
     public static string Ensure(out string? error)
     {
         error = null;
 
-        var daxDirectory = FindPackageDirectory(DaxFamilyName);
-        var vclibsDirectory = FindPackageDirectory(VcLibsFamilyName);
+        var dax = DaxPackages.FindDolbyAccess();
+        var vclibsDirectory = DaxPackages.FindVcLibsDirectory();
 
-        if (daxDirectory is null)
+        if (dax is null)
         {
             error = "Dolby Access is not installed for this user.";
+            return string.Empty;
+        }
+
+        if (!dax.HasClientDll)
+        {
+            error = $"{DaxPackages.ClientDllName} is missing from the Dolby Access package.";
             return string.Empty;
         }
 
@@ -46,8 +47,8 @@ internal static class DaxPackageCache
         {
             Directory.CreateDirectory(cache);
 
-            var source = Path.Combine(daxDirectory, DaxClientDllName);
-            var target = Path.Combine(cache, DaxClientDllName);
+            var source = Path.Combine(dax.InstallPath, DaxPackages.ClientDllName);
+            var target = Path.Combine(cache, DaxPackages.ClientDllName);
 
             if (NeedsCopy(source, target))
             {
@@ -89,14 +90,5 @@ internal static class DaxPackageCache
         return !targetInfo.Exists
                || targetInfo.Length != sourceInfo.Length
                || targetInfo.LastWriteTimeUtc != sourceInfo.LastWriteTimeUtc;
-    }
-
-    private static string? FindPackageDirectory(string familyName)
-    {
-        var package = new PackageManager()
-            .FindPackagesForUser(string.Empty)
-            .FirstOrDefault(p => string.Equals(p.Id.FamilyName, familyName, StringComparison.OrdinalIgnoreCase));
-
-        return package?.InstalledLocation?.Path;
     }
 }

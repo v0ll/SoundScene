@@ -56,6 +56,12 @@ internal static class Program
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int SetGeqFn(IntPtr values, uint count);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int GetCapabilitiesFn(out int bandCount, out int maxRange, out int profileCount);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int GetNameFn(int index, IntPtr buffer, uint length);
+
     private static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -79,6 +85,8 @@ internal static class Program
                 ["activate-at", var dll, .. var rest] => RunActivationAt(module, dll, rest.FirstOrDefault()),
                 ["copytest"] => RunCopyTest(module),
                 ["open"] => RunOpen(module),
+                ["modes"] => RunModes(module),
+                ["diagnostics"] => RunDiagnostics().GetAwaiter().GetResult(),
                 ["writetest"] => RunWriteTest(module),
                 ["geq", var profile] => RunGeqTest(module, int.Parse(profile, CultureInfo.InvariantCulture)),
                 ["core"] => RunCoreProbe().GetAwaiter().GetResult(),
@@ -347,7 +355,7 @@ internal static class Program
 
         var curveOk = readBack.SequenceEqual(target);
         var restoreOk = afterWrite.Profile == start.Profile;
-        Console.WriteLine($"write 20 bands : {(curveOk ? "OK" : "MISMATCH")} (band 0 = {readBack[0]}, band 1 = {readBack[1]})");
+        Console.WriteLine($"write bands    : {(curveOk ? "OK" : "MISMATCH")} (band 0 = {readBack[0]}, band 1 = {readBack[1]})");
         Console.WriteLine($"profile after  : {afterWrite.Profile.DisplayName()} {(restoreOk ? "restored" : "MISMATCH")}");
 
         // This is what the editor does after writing: make the curve audible.
@@ -747,6 +755,71 @@ internal static class Program
         {
             close();
         }
+    }
+
+    /// <summary>Prints what this DAX build reports for band count and device modes.</summary>
+    private static int RunModes(IntPtr module)
+    {
+        Console.WriteLine("SoundScene - DAX capabilities");
+        Console.WriteLine("=============================");
+        Console.WriteLine();
+
+        var cache = PrepareCache();
+        if (cache is null)
+        {
+            return 3;
+        }
+
+        var open = GetExport<OpenFn>(module, "ss_open");
+        var close = GetExport<ActionFn>(module, "ss_close");
+        var capabilities = GetExport<GetCapabilitiesFn>(module, "ss_get_capabilities");
+        var profileName = GetExport<GetNameFn>(module, "ss_get_profile_name");
+
+        try
+        {
+            var rc = InvokeReport((report, len) =>
+            {
+                using var dir = new AnsiString(cache);
+                return open(dir.Pointer, report, len);
+            });
+
+            if (rc != 0)
+            {
+                return rc;
+            }
+
+            var capRc = capabilities(out var bandCount, out var maxRange, out var profileCount);
+            Console.WriteLine($"capabilities   : rc={capRc} bands={bandCount} range={maxRange} profiles={profileCount}");
+
+            for (var i = 0; i < profileCount; i++)
+            {
+                var buffer = Marshal.AllocHGlobal(256);
+                try
+                {
+                    var nameRc = profileName(i, buffer, 256);
+                    var name = Marshal.PtrToStringUTF8(buffer) ?? string.Empty;
+                    Console.WriteLine($"  [{i}] {name,-24} rc={nameRc}");
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(buffer);
+                }
+            }
+
+            return 0;
+        }
+        finally
+        {
+            close();
+        }
+    }
+
+    /// <summary>Prints the same report the Diagnostics window shows.</summary>
+    private static async Task<int> RunDiagnostics()
+    {
+        await using var backend = new DolbyDaxBackend();
+        Console.WriteLine(await backend.GetDiagnosticsAsync());
+        return 0;
     }
 
     /// <summary>

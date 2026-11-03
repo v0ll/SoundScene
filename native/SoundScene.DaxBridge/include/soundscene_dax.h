@@ -95,6 +95,18 @@ SS_API ss_result ss_get_state(int32_t* profile,
                               int32_t* ieq,
                               int32_t* geqMaximumRange);
 
+/*
+ * What this particular DAX build exposes. Any out pointer may be null.
+ * bandCount is the real GEQ width, profileCount the number of device modes.
+ * Dolby does not document either, so callers must not assume 20/six.
+ */
+SS_API ss_result ss_get_capabilities(int32_t* bandCount,
+                                     int32_t* geqMaximumRange,
+                                     int32_t* profileCount);
+
+/* Writes the display name of device mode `index` into buf (UTF-8). */
+SS_API ss_result ss_get_profile_name(int32_t index, char* buf, uint32_t len);
+
 #ifdef __cplusplus
 }
 #endif

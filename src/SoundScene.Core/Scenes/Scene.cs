@@ -17,13 +17,28 @@ public sealed record Scene
 
     public required AudioProfile Profile { get; init; }
 
+    /// <summary>
+    /// The driver index that was active when the scene was captured.
+    /// </summary>
+    /// <remarks>
+    /// Obsolete files only have <see cref="Profile"/>, so this is nullable. New
+    /// captures use the index because a future Dolby build could reorder modes.
+    /// </remarks>
+    public int? ProfileIndex { get; init; }
+
+    /// <summary>The driver's own label at capture time, if it reported one.</summary>
+    public string? ProfileName { get; init; }
+
     public ImmutableArray<int> GeqLevels { get; init; } = ImmutableArray<int>.Empty;
 
     public int Ieq { get; init; }
 
     public bool HasCustomEq => !GeqLevels.IsDefaultOrEmpty;
 
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(ProfileName) ? Profile.DisplayName() : ProfileName;
+
     public string Summary => HasCustomEq
-        ? $"{Profile.DisplayName()} \u00B7 custom EQ"
-        : Profile.DisplayName();
+        ? $"{DisplayName} \u00B7 custom EQ"
+        : DisplayName;
 }
