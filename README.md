@@ -62,7 +62,7 @@ The installer is **not code-signed yet**, so Windows SmartScreen may say "Window
 PC". Verify the download against `SHA256SUMS.txt` on the release page first:
 
 ```powershell
-Get-FileHash .\SoundScene-Setup-0.2.2.exe -Algorithm SHA256
+Get-FileHash .\SoundScene-Setup-0.2.3.exe -Algorithm SHA256
 ```
 
 Then choose **More info > Run anyway**. For the full checklist, including the build provenance
