@@ -128,6 +128,10 @@ The short version: **no network code, no telemetry, no elevation, no bundled Dol
   your machine. It does not ship, patch, or bypass any Dolby component.
 - **Releases are built in public CI** from the tagged commit and carry a verifiable build provenance
   attestation; see [`docs/verify-download.md`](docs/verify-download.md).
+- **Scan the exact file you downloaded.** Upload it to
+  [VirusTotal](https://www.virustotal.com/gui/home/upload) and compare the SHA-256 on the report with
+  `SHA256SUMS.txt`. A shared scan link only means something when its hash matches the release, so
+  check the digits rather than trusting a link.
 
 There is no code-signing certificate yet, so SmartScreen will show an unknown publisher. The
 verification steps above are the substitute until that changes. Tested hardware and open reports

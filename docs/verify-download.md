@@ -26,7 +26,18 @@ Get-Content .\SHA256SUMS.txt
 
 Each hash must match the corresponding line. GitHub also shows an asset digest on the release page.
 
-## 3. Build it yourself
+## 3. Scan the file
+
+Upload the downloaded file to [VirusTotal](https://www.virustotal.com/gui/home/upload) and compare
+the SHA-256 on the report with `SHA256SUMS.txt`. Scanning the exact bytes you have is the only
+version of this check that means anything: a scan of a different build has a different hash.
+
+Unsigned installers that write a Run key and copy DLLs commonly draw one or two generic heuristic
+detections. If an engine flags it, open the detection and use that vendor's false-positive form.
+For Microsoft, use <https://www.microsoft.com/en-us/wdsi/filesubmission> and select "Software
+developer".
+
+## 4. Build it yourself
 
 The app has no NuGet dependencies and no network code. With the .NET 10 SDK and the Visual Studio
 C++ build tools:
