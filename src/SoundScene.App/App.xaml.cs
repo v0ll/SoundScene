@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using SoundScene.App.Services;
 using SoundScene.App.ViewModels;
 using SoundScene.App.Views;
@@ -38,6 +39,23 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // A tray app must not die silently or dump a raw WER dialog on a user who
+        // cannot tell whether the app or Windows failed. Record the details and
+        // keep running when the UI thread can still work.
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception exception)
+            {
+                RecordUnhandled(exception);
+            }
+        };
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            args.SetObserved();
+            RecordUnhandled(args.Exception);
+        };
 
         // Portable copies keep everything beside the executable, so this has to
         // happen before any store is constructed.
@@ -326,6 +344,47 @@ public partial class App : Application
     }
 
     private void OnExitRequested(object? sender, EventArgs e) => Shutdown();
+
+    private void OnDispatcherUnhandledException(object? sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        e.Handled = true;
+
+        var logPath = RecordUnhandled(e.Exception);
+
+        var text =
+            "SoundScene hit an unexpected problem and kept running." + Environment.NewLine +
+            Environment.NewLine +
+            e.Exception.Message + Environment.NewLine +
+            Environment.NewLine +
+            (logPath is null
+                ? "The details could not be saved."
+                : $"The details were saved to:{Environment.NewLine}{logPath}") + Environment.NewLine +
+            Environment.NewLine +
+            "If this keeps happening, attach that file to a report at " +
+            "https://github.com/v0ll/SoundScene/issues";
+
+        MessageBox.Show(text, "SoundScene", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    /// <summary>Writes the exception next to the user's settings; never throws.</summary>
+    private static string? RecordUnhandled(Exception exception)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppPaths.DataDirectory);
+            var path = Path.Combine(AppPaths.DataDirectory, "last-error.txt");
+            File.WriteAllText(
+                path,
+                $"{DateTimeOffset.Now:O}{Environment.NewLine}" +
+                $"SoundScene {typeof(App).Assembly.GetName().Version}{Environment.NewLine}" +
+                $"{Environment.NewLine}{exception}{Environment.NewLine}");
+            return path;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
 
     protected override void OnExit(ExitEventArgs e)
     {

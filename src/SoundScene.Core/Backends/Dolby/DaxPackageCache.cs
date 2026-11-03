@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using SoundScene.Core.Storage;
 
 namespace SoundScene.Core.Backends.Dolby;
@@ -12,7 +13,9 @@ namespace SoundScene.Core.Backends.Dolby;
 /// %LOCALAPPDATA% is therefore mandatory, not an optimisation.
 ///
 /// Nothing is redistributed: the bytes come from the copy already installed and
-/// licensed on this machine. The cache is refreshed whenever the package changes.
+/// licensed on this machine. The cache is only reused while it is byte-for-byte
+/// identical to that installed copy, so a stale or modified cache is replaced
+/// instead of being loaded.
 /// </remarks>
 internal static class DaxPackageCache
 {
@@ -26,6 +29,15 @@ internal static class DaxPackageCache
         if (dax is null)
         {
             error = "Dolby Access is not installed for this user.";
+            return string.Empty;
+        }
+
+        if (!dax.IsTrusted)
+        {
+            error =
+                "The installed Dolby Access package is not trusted by Windows " +
+                $"({dax.SignatureKind}{(dax.IsDevelopmentMode ? ", development mode" : string.Empty)}). " +
+                "SoundScene will not load binaries from an unsigned package.";
             return string.Empty;
         }
 
@@ -47,20 +59,28 @@ internal static class DaxPackageCache
         {
             Directory.CreateDirectory(cache);
 
+            // A junction or symlink here would let another location stand in for
+            // the cache, so refuse rather than write through it.
+            if (IsReparsePoint(cache))
+            {
+                error = $"The DAX cache folder is a reparse point: {cache}";
+                return string.Empty;
+            }
+
             var source = Path.Combine(dax.InstallPath, DaxPackages.ClientDllName);
             var target = Path.Combine(cache, DaxPackages.ClientDllName);
 
-            if (NeedsCopy(source, target))
+            if (!CopyVerified(source, target, out error))
             {
-                File.Copy(source, target, overwrite: true);
+                return string.Empty;
             }
 
             foreach (var dll in Directory.GetFiles(vclibsDirectory, "*_app.dll"))
             {
                 var destination = Path.Combine(cache, Path.GetFileName(dll));
-                if (NeedsCopy(dll, destination))
+                if (!CopyVerified(dll, destination, out error))
                 {
-                    File.Copy(dll, destination, overwrite: true);
+                    return string.Empty;
                 }
             }
 
@@ -78,17 +98,64 @@ internal static class DaxPackageCache
         }
     }
 
-    private static bool NeedsCopy(string source, string target)
+    /// <summary>
+    /// Keeps the cached copy identical to the installed one. The hash check is
+    /// cheap (the client DLL is under 200 KB) and means a cache directory that
+    /// was modified after the copy is never handed to the loader.
+    /// </summary>
+    private static bool CopyVerified(string source, string destination, out string? error)
     {
-        var sourceInfo = new FileInfo(source);
-        if (!sourceInfo.Exists)
+        error = null;
+
+        var sourceHash = HashFile(source);
+
+        if (File.Exists(destination) && !IsReparsePoint(destination))
         {
+            try
+            {
+                if (HashFile(destination).AsSpan().SequenceEqual(sourceHash))
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Unreadable target: fall through and replace it.
+            }
+        }
+
+        // Delete first so an existing symlink is removed rather than written through.
+        if (File.Exists(destination))
+        {
+            File.Delete(destination);
+        }
+
+        File.Copy(source, destination, overwrite: false);
+
+        if (!HashFile(destination).AsSpan().SequenceEqual(sourceHash))
+        {
+            error = $"The cached copy of {Path.GetFileName(source)} does not match the installed package.";
             return false;
         }
 
-        var targetInfo = new FileInfo(target);
-        return !targetInfo.Exists
-               || targetInfo.Length != sourceInfo.Length
-               || targetInfo.LastWriteTimeUtc != sourceInfo.LastWriteTimeUtc;
+        return true;
+    }
+
+    private static bool IsReparsePoint(string path)
+    {
+        try
+        {
+            return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static byte[] HashFile(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return SHA256.HashData(stream);
     }
 }

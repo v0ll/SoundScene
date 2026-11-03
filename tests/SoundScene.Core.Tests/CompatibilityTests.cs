@@ -2,6 +2,7 @@ using SoundScene.Core.Audio;
 using SoundScene.Core.Backends;
 using SoundScene.Core.Backends.Dolby;
 using SoundScene.Core.Scenes;
+using Windows.ApplicationModel;
 
 namespace SoundScene.Core.Tests;
 
@@ -182,5 +183,27 @@ public class CompatibilityTests
         {
             File.Delete(path);
         }
+    }
+
+    [Theory]
+    [InlineData(PackageSignatureKind.Store, false, true)]
+    [InlineData(PackageSignatureKind.System, false, true)]
+    [InlineData(PackageSignatureKind.Enterprise, false, true)]
+    [InlineData(PackageSignatureKind.None, false, false)]
+    [InlineData(PackageSignatureKind.Store, true, false)]
+    public void PackageTrust_RequiresAWindowsSignature(
+        PackageSignatureKind kind,
+        bool developmentMode,
+        bool expected)
+    {
+        var package = new DolbyAccessPackage(
+            "DolbyLaboratories.DolbyAccess_x64__rz1tebttyb220",
+            "3.27",
+            @"C:\Program Files\WindowsApps\Dolby",
+            HasClientDll: true,
+            kind,
+            developmentMode);
+
+        Assert.Equal(expected, package.IsTrusted);
     }
 }

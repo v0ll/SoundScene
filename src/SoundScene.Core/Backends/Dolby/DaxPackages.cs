@@ -12,7 +12,17 @@ public sealed record DolbyAccessPackage(
     string FamilyName,
     string Version,
     string InstallPath,
-    bool HasClientDll);
+    bool HasClientDll,
+    PackageSignatureKind SignatureKind,
+    bool IsDevelopmentMode)
+{
+    /// <summary>
+    /// True when Windows verified the package before installing it. The files
+    /// inside an MSIX carry no Authenticode signature of their own, so the
+    /// package signature is the only trustworthy statement about them.
+    /// </summary>
+    public bool IsTrusted => SignatureKind != PackageSignatureKind.None && !IsDevelopmentMode;
+}
 
 /// <summary>The installed Dolby DAX service.</summary>
 public sealed record DaxServiceInfo(string Name, string ImagePath, string? Version);
@@ -130,6 +140,7 @@ public static class DaxPackages
         return string.Join(
             Environment.NewLine,
             $"Dolby Access   : {(dolby is null ? "<not found>" : $"{dolby.Version} ({dolby.FamilyName})")}",
+            $"package trust  : {(dolby is null ? "<none>" : $"{dolby.SignatureKind}{(dolby.IsDevelopmentMode ? ", development mode" : string.Empty)}")}",
             $"install path   : {dolby?.InstallPath ?? "<none>"}",
             $"client dll     : {(dolby?.HasClientDll == true ? ClientDllName : "<missing>")}",
             $"VCLibs runtime : {vclibs ?? "<not found>"}",
@@ -182,7 +193,9 @@ public static class DaxPackages
                 package.Id.FamilyName,
                 $"{version.Major}.{version.Minor}.{version.Build}.{version.Revision}",
                 path,
-                File.Exists(Path.Combine(path, ClientDllName)));
+                File.Exists(Path.Combine(path, ClientDllName)),
+                package.SignatureKind,
+                package.IsDevelopmentMode);
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or InvalidOperationException or COMException)
         {

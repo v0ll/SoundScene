@@ -115,11 +115,11 @@ SS_API ss_result ss_open(const char* cacheDir, char* report, uint32_t reportLen)
         return -2;
     }
 
-    SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
-    AddDllDirectory(dir.c_str());
-
+    // Resolve the client's imports from its own directory and System32 only.
+    // The application directory, the working directory and PATH stay out of the
+    // search, so nothing beside the app can satisfy an import.
     g_session.module = LoadLibraryExW(dllPath.c_str(), nullptr,
-                                      LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
+                                      LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (g_session.module == nullptr)
     {
         AppendHresult(out, "LoadLibraryExW", HRESULT_FROM_WIN32(GetLastError()));

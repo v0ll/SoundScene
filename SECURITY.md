@@ -24,7 +24,11 @@ Include:
 
 SoundScene runs with the current user's privileges. It reads the Dolby Access package, copies its
 client DLL into a private cache, writes HKCU/app-data settings, and talks to the local Dolby DAX
-service. It does not bundle Dolby binaries, request elevation, or open a network listener.
+service. It does not bundle Dolby binaries, request elevation, open a network listener, or make any
+network request.
+
+The [security design](docs/security.md) page lists every file and registry value it touches, and
+[verify-download.md](docs/verify-download.md) explains how to check a release.
 
 Problems in Dolby Access, the ASUS audio driver, or Windows itself are outside this project's
 scope and should be reported to the respective vendor.

@@ -28,8 +28,18 @@ $build = Join-Path $root "build\release"
 $publish = Join-Path $build "publish"
 $portable = Join-Path $build "portable\SoundScene"
 $dist = Join-Path $root "dist"
-$bridge = Join-Path $root "native\build\Release\SoundScene.DaxBridge.dll"
 $appProject = Join-Path $root "src\SoundScene.App\SoundScene.App.csproj"
+
+function Find-Bridge {
+    # Visual Studio generators use build\Release; Ninja uses build\.
+    $candidates = @(
+        (Join-Path $root "native\build\Release\SoundScene.DaxBridge.dll"),
+        (Join-Path $root "native\build\SoundScene.DaxBridge.dll")
+    )
+    return $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+
+$bridge = Find-Bridge
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
     [xml]$props = Get-Content (Join-Path $root "Directory.Build.props")
@@ -45,7 +55,7 @@ Write-Host ""
 
 # The native bridge is compiled out-of-band and publish only copies it if it
 # already exists, so build it first and fail early if it is missing.
-if (-not (Test-Path $bridge)) {
+if (-not $bridge) {
     Write-Host "Building the native DAX bridge..."
     $nativeBuild = Join-Path $root "native\build"
     if (-not (Test-Path (Join-Path $nativeBuild "CMakeCache.txt"))) {
@@ -55,10 +65,12 @@ if (-not (Test-Path $bridge)) {
 
     & cmake --build $nativeBuild --config $Configuration
     if ($LASTEXITCODE -ne 0) { throw "Native build failed." }
+
+    $bridge = Find-Bridge
 }
 
-if (-not (Test-Path $bridge)) {
-    throw "The native bridge is still missing: $bridge"
+if (-not $bridge) {
+    throw "The native bridge is still missing under native\build."
 }
 
 # A clean output keeps a stale bridge or PDB out of the installer.

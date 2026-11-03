@@ -155,6 +155,15 @@ function Show-Popup {
     throw "The popup did not appear."
 }
 
+function Wait-Button([object]$scope, [string]$name) {
+    for ($i = 0; $i -lt 16; $i++) {
+        $button = [Uia]::Button($scope, $name)
+        if ($button) { return $button }
+        Start-Sleep -Milliseconds 250
+    }
+    return $null
+}
+
 function Wait-Profile([int]$expected) {
     # DAX flushes Runtime.xml asynchronously, so poll instead of reading once.
     for ($i = 0; $i -lt 12; $i++) {
@@ -217,7 +226,7 @@ try {
     }
 
     $w = Show-Popup
-    $tile = [Uia]::Button($w, $sceneName)
+    $tile = Wait-Button $w $sceneName
     "scene tile    : $($null -ne $tile)"
     if ($tile) {
         [Uia]::Invoke($tile)
@@ -230,7 +239,7 @@ try {
     }
 
     $w = Show-Popup
-    $delete = [Uia]::Button($w, "Remove scene")
+    $delete = Wait-Button $w "Remove scene"
     "delete button : $($null -ne $delete)"
     if ($delete) {
         [Uia]::Invoke($delete)

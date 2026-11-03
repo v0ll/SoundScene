@@ -22,7 +22,7 @@ Switching from one profile to another literally means opening the app, waiting f
 Tested on the **ROG Zephyrus G14 GA403UV** with Windows 11 and Dolby Access 3.27. Other DAX3-based
 ROG models, including the Zephyrus G16, should work because the app reads the installed driver's
 band count, EQ range, and profile names instead of assuming the G14's; those models have not been
-verified on hardware yet.
+verified on hardware yet. See [`docs/compatibility.md`](docs/compatibility.md).
 
 ## Features
 
@@ -65,7 +65,11 @@ PC". Verify the download against `SHA256SUMS.txt` on the release page first:
 Get-FileHash .\SoundScene-Setup-0.2.2.exe -Algorithm SHA256
 ```
 
-Then choose **More info > Run anyway**.
+Then choose **More info > Run anyway**. For the full checklist, including the build provenance
+attestation and a source-only build, see [`docs/verify-download.md`](docs/verify-download.md).
+
+The setup is about 49 MB because it bundles the .NET runtime, so nothing extra has to be
+installed. The app itself is a few megabytes.
 
 `SoundScene-Portable-x.y.z.zip` is the alternative: extract it anywhere and run
 `SoundScene.App.exe`. Settings, scenes, and the private Dolby client cache live in the `data`
@@ -106,6 +110,29 @@ A scene records the active profile, and the EQ curve only when it was captured o
 Dolby keeps equalizer levels per profile and only exposes them on that one, so capturing zeros from
 Movie would be a lie.
 
+## SECURITY & PRIVACY
+
+The short version: **no network code, no telemetry, no elevation, no bundled Dolby binaries.**
+
+- **Nothing is sent anywhere.** There is no HTTP client, socket, DNS call, crash upload, or update
+  check in `src`. The app works entirely offline.
+- **Per-user only.** The installer runs with `PrivilegesRequired=lowest`, writes under
+  `%LOCALAPPDATA%\Programs\SoundScene`, and never asks for administrator rights.
+- **It writes only what it needs:** `settings.json` and `scenes.json` in `%APPDATA%\SoundScene`,
+  the copied Dolby client in `%LOCALAPPDATA%\SoundScene\dax-cache`, and one `HKCU` Run value if you
+  enable "Start with Windows". A portable copy writes only inside its own folder.
+- **The Dolby client copy is verified.** The package must be Windows-signed, every cached file must
+  SHA-256 match the installed one, and the loader resolves imports only from the cache and System32.
+  See [`docs/security.md`](docs/security.md) for the full write-up.
+- **No redistribution.** SoundScene uses the Dolby Access copy already installed and licensed on
+  your machine. It does not ship, patch, or bypass any Dolby component.
+- **Releases are built in public CI** from the tagged commit and carry a verifiable build provenance
+  attestation; see [`docs/verify-download.md`](docs/verify-download.md).
+
+There is no code-signing certificate yet, so SmartScreen will show an unknown publisher. The
+verification steps above are the substitute until that changes. Tested hardware and open reports
+are listed in [`docs/compatibility.md`](docs/compatibility.md).
+
 ## KNOWN LIMITATIONS
 
 - **Dolby Access and the ASUS Dolby Atmos driver are both required.** The driver alone provides the
@@ -122,7 +149,8 @@ Movie would be a lie.
   six known profiles in Dolby's historical order.
 - Profiles with names SoundScene does not recognise are shown and selectable, but scenes and
   hotkeys still target the six known profiles.
-- The installer is not code-signed yet, so SmartScreen may warn. Verify `SHA256SUMS.txt`.
+- The installer is not code-signed yet, so SmartScreen warns. Verify `SHA256SUMS.txt` or the build
+  provenance attestation.
 - There is no auto-update yet; check the releases page for new versions.
 - SoundScene changes the active Dolby profile and Personalize EQ state as part of normal use. The
   uninstaller leaves those changes alone unless you enable the optional Dolby reset.
@@ -130,8 +158,10 @@ Movie would be a lie.
 ## SUPPORT
 
 Open an issue at <https://github.com/v0ll/SoundScene/issues>. Include the output of the app's
-**Diagnostics** window, your Windows build, Dolby Access version, and laptop model. For security
-reports, follow [`SECURITY.md`](SECURITY.md) instead of opening a public issue.
+**Diagnostics** window, your Windows build, Dolby Access version, and laptop model. Tested models
+are listed in [`docs/compatibility.md`](docs/compatibility.md); a compatibility report is welcome
+even when everything works. For security reports, follow [`SECURITY.md`](SECURITY.md) instead of
+opening a public issue.
 
 ## Architecture
 
@@ -188,8 +218,10 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 ```
 
 That writes `SoundScene-Setup-x.y.z.exe`, `SoundScene-Portable-x.y.z.zip`, and `SHA256SUMS.txt` to
-`dist\`. Bump `VersionPrefix` in `Directory.Build.props` before a release. The artifacts are
-unsigned, so Windows SmartScreen may warn; publish the SHA-256 file alongside them.
+`dist\`. Bump `VersionPrefix` in `Directory.Build.props` before a release. Published releases are
+built by `.github/workflows/release.yml` on a tag push, not from a local `dist` folder, so the
+artifacts on the releases page always come from the tagged commit. The artifacts are unsigned, so
+Windows SmartScreen may warn; publish the SHA-256 file alongside them.
 
 ## TESTING
 

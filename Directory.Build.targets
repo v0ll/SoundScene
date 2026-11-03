@@ -7,7 +7,10 @@
     someone has run a native build.
   -->
   <PropertyGroup>
-    <NativeBridgePath>$(MSBuildThisFileDirectory)native\build\Release\SoundScene.DaxBridge.dll</NativeBridgePath>
+    <!-- Visual Studio generators put the DLL in a per-configuration folder;
+         Ninja and other single-config generators put it beside the cache. -->
+    <NativeBridgePath Condition="Exists('$(MSBuildThisFileDirectory)native\build\Release\SoundScene.DaxBridge.dll')">$(MSBuildThisFileDirectory)native\build\Release\SoundScene.DaxBridge.dll</NativeBridgePath>
+    <NativeBridgePath Condition="'$(NativeBridgePath)' == '' And Exists('$(MSBuildThisFileDirectory)native\build\SoundScene.DaxBridge.dll')">$(MSBuildThisFileDirectory)native\build\SoundScene.DaxBridge.dll</NativeBridgePath>
   </PropertyGroup>
 
   <Target Name="CopyNativeDaxBridge" AfterTargets="Build" Condition="Exists('$(NativeBridgePath)')">

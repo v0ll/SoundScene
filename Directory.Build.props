@@ -28,7 +28,7 @@
 
   <!-- Package / assembly metadata -->
   <PropertyGroup>
-    <VersionPrefix>0.2.2</VersionPrefix>
+    <VersionPrefix>0.2.3</VersionPrefix>
     <Product>SoundScene</Product>
     <Authors>Ali Eren Altuntas</Authors>
     <Company>SoundScene</Company>
