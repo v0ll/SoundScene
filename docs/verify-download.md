@@ -32,6 +32,10 @@ Upload the downloaded file to [VirusTotal](https://www.virustotal.com/gui/home/u
 the SHA-256 on the report with `SHA256SUMS.txt`. Scanning the exact bytes you have is the only
 version of this check that means anything: a scan of a different build has a different hash.
 
+Published scans of the current release:
+[setup](https://www.virustotal.com/gui/file/c54646a1c68a06da24ee81acc691cd1699e0dd87bf471f14ee22f0f51695d85a/detection) ·
+[portable](https://www.virustotal.com/gui/file/6b6ac7e536eb846ab5d79de005f1c01310c710b13ac51fe51d24e41284ee70e0/detection).
+
 Unsigned installers that write a Run key and copy DLLs commonly draw one or two generic heuristic
 detections. If an engine flags it, open the detection and use that vendor's false-positive form.
 For Microsoft, use <https://www.microsoft.com/en-us/wdsi/filesubmission> and select "Software

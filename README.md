@@ -68,6 +68,9 @@ Get-FileHash .\SoundScene-Setup-0.2.3.exe -Algorithm SHA256
 Then choose **More info > Run anyway**. For the full checklist, including the build provenance
 attestation and a source-only build, see [`docs/verify-download.md`](docs/verify-download.md).
 
+VirusTotal scans of the 0.2.3 files: [setup](https://www.virustotal.com/gui/file/c54646a1c68a06da24ee81acc691cd1699e0dd87bf471f14ee22f0f51695d85a/detection) ·
+[portable](https://www.virustotal.com/gui/file/6b6ac7e536eb846ab5d79de005f1c01310c710b13ac51fe51d24e41284ee70e0/detection).
+
 The setup is about 49 MB because it bundles the .NET runtime, so nothing extra has to be
 installed. The app itself is a few megabytes.
 
@@ -131,7 +134,9 @@ The short version: **no network code, no telemetry, no elevation, no bundled Dol
 - **Scan the exact file you downloaded.** Upload it to
   [VirusTotal](https://www.virustotal.com/gui/home/upload) and compare the SHA-256 on the report with
   `SHA256SUMS.txt`. A shared scan link only means something when its hash matches the release, so
-  check the digits rather than trusting a link.
+  check the digits rather than trusting a link. Published scans for 0.2.3:
+  [setup](https://www.virustotal.com/gui/file/c54646a1c68a06da24ee81acc691cd1699e0dd87bf471f14ee22f0f51695d85a/detection) ·
+  [portable](https://www.virustotal.com/gui/file/6b6ac7e536eb846ab5d79de005f1c01310c710b13ac51fe51d24e41284ee70e0/detection).
 
 There is no code-signing certificate yet, so SmartScreen will show an unknown publisher. The
 verification steps above are the substitute until that changes. Tested hardware and open reports
